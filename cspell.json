@@ -1,0 +1,28 @@
+{
+    "version": "0.2",
+    "language": "en",
+    "words": [
+        "bindgen",
+        "Concatenator",
+        "Datagram",
+        "eframe",
+        "egui",
+        "Ermes",
+        "Esme",
+        "filehash",
+        "gloo",
+        "Isdn",
+        "pdus",
+        "rusmpp",
+        "rusmppc",
+        "rusmpps",
+        "serde",
+        "Smpp",
+        "smpps",
+        "ssmpp",
+        "udhi"
+    ],
+    "ignorePaths": [
+        "target"
+    ]
+}

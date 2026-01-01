@@ -1,0 +1,29 @@
+[package]
+name = "rusmppc-egui"
+version = "0.1.1"
+edition = "2024"
+
+[dependencies]
+eframe = { version = "0.33.3", features = ["persistence"] }
+egui = { version = "0.33.3" }
+egui_dock = "0.18.0"
+egui_material_icons = "0.5.0"
+tokio = { version = "1.48.0", features = ["sync"] }
+futures = "0.3.31"
+parking_lot = "0.12.5"
+rusmpp = { git = "https://github.com/Rusmpp/Rusmpp", branch = "feat/rusmppc/runtime", package = "rusmpp" }
+rusmppc = { git = "https://github.com/Rusmpp/Rusmpp", branch = "feat/rusmppc/runtime", package = "rusmppc" }
+strum = { version = "0.27", features = ["derive"] }
+anyhow = "1.0.100"
+url = "2.5.7"
+serde = { version = "1.0", features = ["derive"] }
+tokio-util = { version = "0.7.17", features = ["compat"] }
+serde_json = "1.0.148"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio = { version = "1.48.0", features = ["rt", "sync"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures = "0.4.56"
+web-sys = "0.3.70"
+gloo-net = { version = "0.6.0", features = ["websocket", "io-util"] }
