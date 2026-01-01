@@ -1,4 +1,5 @@
 pub mod actions;
+mod app;
 pub mod apps;
 pub mod background;
 pub mod client;
@@ -10,3 +11,5 @@ pub mod state;
 pub mod types;
 pub mod values;
 pub mod widgets;
+
+pub use app::App;
