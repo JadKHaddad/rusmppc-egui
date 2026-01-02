@@ -1,5 +1,5 @@
 use egui::{Stroke, WidgetText};
-use egui_dock::{DockArea, DockState, Style};
+use egui_dock::{DockArea, DockState, NodeIndex, Style};
 
 use crate::{
     actions::ActionsChannel,
@@ -67,7 +67,7 @@ impl egui_dock::TabViewer for TabViewer {
     }
 
     fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
-        [false, false]
+        [true, false]
     }
 }
 
@@ -77,15 +77,19 @@ pub struct Tabs {
 
 impl Tabs {
     pub fn new(events_holder: EventsHolder, actions: ActionsChannel) -> Self {
-        let tabs = [
-            Tab::Bind(BindApp::new(actions.clone())),
-            Tab::SubmitSm(SubmitSmApp::new(actions)),
-            Tab::Logs(LogsApp::new(events_holder)),
-        ]
-        .into_iter()
-        .collect();
+        let mut dock_state = DockState::new(vec![Tab::Bind(BindApp::new(actions.clone()))]);
 
-        let dock_state = DockState::new(tabs);
+        let [a, _] = dock_state.main_surface_mut().split_below(
+            NodeIndex::root(),
+            0.6,
+            vec![Tab::Logs(LogsApp::new(events_holder))],
+        );
+
+        let [_, _] = dock_state.main_surface_mut().split_right(
+            a,
+            0.3,
+            vec![Tab::SubmitSm(SubmitSmApp::new(actions))],
+        );
 
         Self { dock_state }
     }
