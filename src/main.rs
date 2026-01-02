@@ -4,8 +4,29 @@ use rusmppc_egui::App;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() -> eframe::Result {
+    use egui::IconData;
+
+    fn icon() -> IconData {
+        // TODO: make an image
+        let bytes = include_bytes!("../assets/rusmpp.png");
+
+        let image = image::load_from_memory(bytes)
+            .expect("valid app icon")
+            .to_rgba8();
+
+        let (width, height) = image.dimensions();
+
+        IconData {
+            rgba: image.into_raw(),
+            width,
+            height,
+        }
+    }
+
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_maximized(true),
+        viewport: egui::ViewportBuilder::default()
+            .with_maximized(true)
+            .with_icon(icon()),
         centered: true,
         ..Default::default()
     };

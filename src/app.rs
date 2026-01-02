@@ -111,6 +111,7 @@ impl eframe::App for App {
                                 .show(ui, |ui| {
                                     ui.set_width(ui.available_width());
 
+                                    // TODO: the elements in the list disappear while resizing
                                     self.log_list.ui_custom_layout(ui, len, |ui, start_index| {
                                         let index = len - 1 - start_index;
 
