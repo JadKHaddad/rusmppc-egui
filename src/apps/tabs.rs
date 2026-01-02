@@ -1,28 +1,46 @@
 use egui::{Stroke, WidgetText};
 use egui_dock::{DockArea, DockState, Style};
 
-use crate::{actions::ActionsChannel, apps::SubmitSmApp};
+use crate::{
+    actions::ActionsChannel,
+    apps::{BindApp, LogsApp, SubmitSmApp},
+    state::EventsHolder,
+};
 
-enum Tab {
+pub enum Tab {
+    Bind(BindApp),
     SubmitSm(SubmitSmApp),
+    Logs(LogsApp),
 }
 
 impl Tab {
     const fn title(&self) -> &str {
         match self {
+            Tab::Bind(_) => "Bind",
             Tab::SubmitSm(_) => "Submit Sm",
+            Tab::Logs(_) => "Logs",
         }
     }
 
     fn set_bound(&mut self, bound: bool) {
         match self {
             Tab::SubmitSm(app) => app.set_bound(bound),
+            Tab::Bind(app) => app.set_bound(bound),
+            Tab::Logs(_) => {}
         }
     }
 
-    fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
+    fn ui(&mut self, ui: &mut egui::Ui) {
         match self {
-            Tab::SubmitSm(app) => app.ui(ui),
+            Tab::SubmitSm(app) => {
+                app.ui(ui);
+            }
+            Tab::Bind(app) => {
+                app.ui(ui);
+            }
+            Tab::Logs(app) => {
+                app.ui(ui);
+            }
         }
     }
 }
@@ -54,14 +72,18 @@ impl egui_dock::TabViewer for TabViewer {
 }
 
 pub struct Tabs {
-    dock_state: DockState<Tab>,
+    pub dock_state: DockState<Tab>,
 }
 
 impl Tabs {
-    pub fn new(actions: ActionsChannel) -> Self {
-        let tabs = [Tab::SubmitSm(SubmitSmApp::new(actions))]
-            .into_iter()
-            .collect();
+    pub fn new(events_holder: EventsHolder, actions: ActionsChannel) -> Self {
+        let tabs = [
+            Tab::Bind(BindApp::new(actions.clone())),
+            Tab::SubmitSm(SubmitSmApp::new(actions)),
+            Tab::Logs(LogsApp::new(events_holder)),
+        ]
+        .into_iter()
+        .collect();
 
         let dock_state = DockState::new(tabs);
 
@@ -84,7 +106,6 @@ impl Tabs {
             .show_close_buttons(false)
             .show_leaf_collapse_buttons(false)
             .show_leaf_close_all_buttons(false)
-            .draggable_tabs(false)
             .style(style)
             .show(ctx, &mut TabViewer);
     }

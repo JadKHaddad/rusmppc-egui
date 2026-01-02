@@ -1,8 +1,11 @@
 mod bind;
-pub use bind::BindApp;
+use bind::BindApp;
 
 mod submit_sm;
-pub use submit_sm::SubmitSmApp;
+use submit_sm::SubmitSmApp;
+
+mod logs;
+use logs::LogsApp;
 
 mod tabs;
 pub use tabs::Tabs;

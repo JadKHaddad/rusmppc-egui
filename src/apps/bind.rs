@@ -187,10 +187,8 @@ impl BindApp {
                 .bind(self.mode, url, bind, self.loading.clone());
         }
     }
-}
 
-impl egui::Widget for &mut BindApp {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    pub fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         let loading = self.loading.load(Ordering::Relaxed);
 
         ui.vertical_centered(|ui| {

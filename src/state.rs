@@ -11,10 +11,30 @@ pub struct AppState {
     inner: Arc<AppStateInner>,
 }
 
+#[derive(Clone)]
+pub struct EventsHolder {
+    inner: Arc<AppStateInner>,
+}
+
+impl EventsHolder {
+    /// Get a read-only reference to the events
+    ///
+    /// The returned reference must dropped as soon as possible to avoid blocking writes
+    pub fn events(&self) -> impl Deref<Target = Vec<Event>> + '_ {
+        self.inner.events.read()
+    }
+}
+
 impl AppState {
     pub fn new(ctx: Context) -> Self {
         Self {
             inner: Arc::new(AppStateInner::new(ctx)),
+        }
+    }
+
+    pub fn holder(&self) -> EventsHolder {
+        EventsHolder {
+            inner: self.inner.clone(),
         }
     }
 }
