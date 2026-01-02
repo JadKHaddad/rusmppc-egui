@@ -39,6 +39,7 @@ impl ActionsChannel {
 }
 
 #[derive(Debug, Clone)]
+#[allow(clippy::large_enum_variant)]
 pub enum Action {
     Bind(BindAction),
     Unbind(UnbindAction),

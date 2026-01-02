@@ -3,7 +3,7 @@ use egui_virtual_list::VirtualList;
 
 use crate::{
     actions::{Action, ActionsChannel},
-    apps::{BindApp, SubmitSmApp},
+    apps::{BindApp, Tabs},
     background::BackgroundApp,
     state::AppState,
     widgets::BindIndicator,
@@ -13,7 +13,7 @@ pub struct App {
     state: AppState,
     log_list: VirtualList,
     bind_app: BindApp,
-    submit_sm_app: SubmitSmApp,
+    tabs: Tabs,
     version: &'static str,
 }
 
@@ -25,7 +25,7 @@ impl App {
             state,
             log_list: VirtualList::new(),
             bind_app: BindApp::new(actions.clone()),
-            submit_sm_app: SubmitSmApp::new(actions),
+            tabs: Tabs::new(actions),
             version: env!("CARGO_PKG_VERSION"),
         }
     }
@@ -76,7 +76,7 @@ impl eframe::App for App {
             let bound = self.state.is_bound();
 
             self.bind_app.set_bound(bound);
-            self.submit_sm_app.set_bound(bound);
+            self.tabs.set_bound(bound);
 
             egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
                 egui::Frame::new()
@@ -155,7 +155,7 @@ impl eframe::App for App {
                 });
 
             egui::CentralPanel::default().show(ctx, |ui| {
-                // self.tabs.ui(ctx, ui);
+                self.tabs.ui(ctx, ui);
             });
 
             // egui::Window::new("Bind").resizable(false).show(ctx, |ui| {

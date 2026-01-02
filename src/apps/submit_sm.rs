@@ -259,10 +259,8 @@ impl SubmitSmApp {
             .as_ref()
             .is_ok_and(|sms| sms.len() > 1)
     }
-}
 
-impl egui::Widget for &mut SubmitSmApp {
-    fn ui(self, ui: &mut egui::Ui) -> egui::Response {
+    pub fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
         ui.vertical_centered(|ui| {
             let display_err = |ui: &mut egui::Ui, err: &AppUiError| {
                 ui.allocate_space(egui::vec2(0.0, 0.0));
@@ -276,16 +274,12 @@ impl egui::Widget for &mut SubmitSmApp {
                 .striped(false)
                 .show(ui, |ui| {
                     ui.label("Service Type");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut self.service_type)
-                            .char_limit(5)
-                            .desired_width(ui.available_width()),
-                    )
-                    .on_hover_text("Max 5 ASCII characters")
-                    .changed()
-                    .then(|| {
-                        self.update_service_type();
-                    });
+                    ui.add(egui::TextEdit::singleline(&mut self.service_type).char_limit(5))
+                        .on_hover_text("Max 5 ASCII characters")
+                        .changed()
+                        .then(|| {
+                            self.update_service_type();
+                        });
                     ui.end_row();
 
                     if let Err(err) = &self.fields.service_type {
@@ -298,8 +292,7 @@ impl egui::Widget for &mut SubmitSmApp {
             ui.add_space(12.0);
 
             egui::Grid::new("submit_sm_addr_grid")
-                .num_columns(4)
-                .min_col_width(140.0)
+                .num_columns(6)
                 .spacing([16.0, 10.0])
                 .striped(false)
                 .show(ui, |ui| {
@@ -310,20 +303,25 @@ impl egui::Widget for &mut SubmitSmApp {
                         &mut self.source_addr_ton,
                         Ton::VARIANTS,
                     ));
-                    ui.label("Destination Address TON");
-                    ui.add(ComboBox::new(
-                        "submit_sm_dest_addr_ton",
-                        &mut self.dest_addr_ton,
-                        Ton::VARIANTS,
-                    ));
-                    ui.end_row();
-
-                    // NPI
                     ui.label("Source Address NPI");
                     ui.add(ComboBox::new(
                         "submit_sm_source_addr_npi",
                         &mut self.source_addr_npi,
                         Npi::VARIANTS,
+                    ));
+                    ui.label("Source Address");
+                    ui.add(egui::TextEdit::singleline(&mut self.source_addr).char_limit(20))
+                        .on_hover_text("Max 20 ASCII characters")
+                        .changed()
+                        .then(|| self.update_source_addr());
+
+                    ui.end_row();
+
+                    ui.label("Destination Address TON");
+                    ui.add(ComboBox::new(
+                        "submit_sm_dest_addr_ton",
+                        &mut self.dest_addr_ton,
+                        Ton::VARIANTS,
                     ));
                     ui.label("Destination Address NPI");
                     ui.add(ComboBox::new(
@@ -331,28 +329,11 @@ impl egui::Widget for &mut SubmitSmApp {
                         &mut self.dest_addr_npi,
                         Npi::VARIANTS,
                     ));
-                    ui.end_row();
-
-                    // Address
-                    ui.label("Source Address");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut self.source_addr)
-                            .char_limit(20)
-                            .desired_width(ui.available_width()),
-                    )
-                    .on_hover_text("Max 20 ASCII characters")
-                    .changed()
-                    .then(|| self.update_source_addr());
-
                     ui.label("Destination Address");
-                    ui.add(
-                        egui::TextEdit::singleline(&mut self.destination_addr)
-                            .char_limit(20)
-                            .desired_width(ui.available_width()),
-                    )
-                    .on_hover_text("Max 20 ASCII characters")
-                    .changed()
-                    .then(|| self.update_destination_addr());
+                    ui.add(egui::TextEdit::singleline(&mut self.destination_addr).char_limit(20))
+                        .on_hover_text("Max 20 ASCII characters")
+                        .changed()
+                        .then(|| self.update_destination_addr());
 
                     ui.end_row();
                 });
