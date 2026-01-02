@@ -1,14 +1,17 @@
 use eframe::AppCreator;
+use egui_virtual_list::VirtualList;
 
 use crate::{
     actions::{Action, ActionsChannel},
     apps::{BindApp, SubmitSmApp},
     background::BackgroundApp,
     state::AppState,
+    widgets::BindIndicator,
 };
 
 pub struct App {
     state: AppState,
+    log_list: VirtualList,
     bind_app: BindApp,
     submit_sm_app: SubmitSmApp,
     version: &'static str,
@@ -20,6 +23,7 @@ impl App {
 
         Self {
             state,
+            log_list: VirtualList::new(),
             bind_app: BindApp::new(actions.clone()),
             submit_sm_app: SubmitSmApp::new(actions),
             version: env!("CARGO_PKG_VERSION"),
@@ -74,59 +78,138 @@ impl eframe::App for App {
             self.bind_app.set_bound(bound);
             self.submit_sm_app.set_bound(bound);
 
-            egui::Window::new("Bind").resizable(false).show(ctx, |ui| {
+            egui::TopBottomPanel::bottom("bottom").show(ctx, |ui| {
                 egui::Frame::new()
-                    .inner_margin(egui::Margin::same(16))
+                    .inner_margin(egui::Margin::same(2))
                     .show(ui, |ui| {
-                        ui.add(&mut self.bind_app);
+                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                            ui.label(self.version);
+                            ui.add_space(ui.available_width() - BindIndicator::size().x);
+                            ui.add(BindIndicator::new(bound));
+                        });
                     });
             });
 
-            egui::Window::new("Submit SM")
-                .resizable(false)
-                .max_width(700.0)
+            egui::TopBottomPanel::bottom("logs")
+                .resizable(true)
+                .max_height(ctx.available_rect().height() * 0.75)
+                .min_height(ctx.available_rect().height() * 0.25)
                 .show(ctx, |ui| {
                     egui::Frame::new()
                         .inner_margin(egui::Margin::same(16))
                         .show(ui, |ui| {
-                            ui.add(&mut self.submit_sm_app);
+                            ui.heading("Logs");
+                            ui.add_space(12.0);
+                            ui.separator();
+                            ui.add_space(12.0);
+
+                            let events = self.state.events();
+                            let len = events.len();
+
+                            egui::ScrollArea::vertical()
+                                .auto_shrink([false, false])
+                                .show(ui, |ui| {
+                                    ui.set_width(ui.available_width());
+
+                                    self.log_list.ui_custom_layout(ui, len, |ui, start_index| {
+                                        let index = len - 1 - start_index;
+
+                                        if let Some(event) = events.get(index) {
+                                            ui.push_id(index, |ui| {
+                                                egui::Frame::group(ui.style())
+                                                    .inner_margin(egui::Margin::same(8))
+                                                    .corner_radius(egui::CornerRadius::same(6))
+                                                    .show(ui, |ui| {
+                                                        ui.set_width(ui.available_width());
+                                                        ui.label(format!("{event:?}"));
+                                                    });
+                                            });
+                                        }
+
+                                        1
+                                    });
+                                });
                         });
                 });
 
-            egui::Window::new("Logs")
-                .default_height(500.0)
+            egui::SidePanel::left("bind")
                 .resizable(true)
+                .max_width(ctx.available_rect().width() * 0.75)
+                .min_width(ctx.available_rect().width() * 0.25)
                 .show(ctx, |ui| {
-                    let events = self.state.events();
-                    let len = events.len();
+                    egui::Frame::new()
+                        .inner_margin(egui::Margin::same(16))
+                        .show(ui, |ui| {
+                            ui.heading("Bind");
+                            ui.add_space(12.0);
+                            ui.separator();
+                            ui.add_space(12.0);
 
-                    let row_height = egui::TextStyle::Body.resolve(ui.style()).size;
-
-                    egui::ScrollArea::vertical()
-                        .auto_shrink([false, false]) // <- critical
-                        .show_rows(ui, row_height, len, |ui, row_range| {
-                            // Claim width so the scroll area expands even when empty
-                            ui.set_min_height(ui.available_height());
-
-                            for row in row_range {
-                                let index = len - 1 - row;
-                                if let Some(event) = events.get(index) {
-                                    egui::Frame::group(ui.style())
-                                        .inner_margin(egui::Margin::same(8))
-                                        .corner_radius(egui::CornerRadius::same(6))
-                                        .show(ui, |ui| {
-                                            ui.label(format!("{event:?}"));
-                                        });
-                                }
-                            }
+                            egui::ScrollArea::vertical()
+                                .auto_shrink(true)
+                                .show(ui, |ui| {
+                                    ui.add(&mut self.bind_app);
+                                })
                         });
                 });
 
-            egui::TopBottomPanel::bottom("version_panel").show(ctx, |ui| {
-                ui.horizontal_centered(|ui| {
-                    ui.label(self.version);
-                });
+            egui::CentralPanel::default().show(ctx, |ui| {
+                // self.tabs.ui(ctx, ui);
             });
+
+            // egui::Window::new("Bind").resizable(false).show(ctx, |ui| {
+            //     egui::Frame::new()
+            //         .inner_margin(egui::Margin::same(16))
+            //         .show(ui, |ui| {
+            //             ui.add(&mut self.bind_app);
+            //         });
+            // });
+
+            // egui::Window::new("Submit SM")
+            //     .resizable(false)
+            //     .max_width(700.0)
+            //     .show(ctx, |ui| {
+            //         egui::Frame::new()
+            //             .inner_margin(egui::Margin::same(16))
+            //             .show(ui, |ui| {
+            //                 ui.add(&mut self.submit_sm_app);
+            //             });
+            //     });
+
+            // egui::Window::new("Logs")
+            //     .default_height(500.0)
+            //     .resizable(true)
+            //     .show(ctx, |ui| {
+            //         let events = self.state.events();
+            //         let len = events.len();
+
+            //         let row_height = egui::TextStyle::Body.resolve(ui.style()).size;
+
+            //         egui::ScrollArea::vertical()
+            //             .auto_shrink([false, false]) // <- critical
+            //             .show_rows(ui, row_height, len, |ui, row_range| {
+            //                 // Claim width so the scroll area expands even when empty
+            //                 ui.set_min_height(ui.available_height());
+
+            //                 for row in row_range {
+            //                     let index = len - 1 - row;
+            //                     if let Some(event) = events.get(index) {
+            //                         egui::Frame::group(ui.style())
+            //                             .inner_margin(egui::Margin::same(8))
+            //                             .corner_radius(egui::CornerRadius::same(6))
+            //                             .show(ui, |ui| {
+            //                                 ui.label(format!("{event:?}"));
+            //                             });
+            //                     }
+            //                 }
+            //             });
+            //     });
+
+            // egui::TopBottomPanel::bottom("version_panel").show(ctx, |ui| {
+            //     ui.horizontal_centered(|ui| {
+            //         ui.label(self.version);
+            //     });
+            // });
         });
     }
 }

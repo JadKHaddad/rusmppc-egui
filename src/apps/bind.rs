@@ -208,7 +208,7 @@ impl egui::Widget for &mut BindApp {
                         };
 
                         ui.label("URL");
-                        ui.add(egui::TextEdit::singleline(&mut self.url).desired_width(320.0))
+                        ui.add(egui::TextEdit::singleline(&mut self.url))
                             .changed()
                             .then(|| {
                                 self.update_url();
@@ -220,16 +220,12 @@ impl egui::Widget for &mut BindApp {
                         }
 
                         ui.label("System ID");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.system_id)
-                                .char_limit(15)
-                                .desired_width(320.0),
-                        )
-                        .on_hover_text("Max 15 ASCII characters")
-                        .changed()
-                        .then(|| {
-                            self.update_system_id();
-                        });
+                        ui.add(egui::TextEdit::singleline(&mut self.system_id).char_limit(15))
+                            .on_hover_text("Max 15 ASCII characters")
+                            .changed()
+                            .then(|| {
+                                self.update_system_id();
+                            });
                         ui.end_row();
 
                         if let Err(err) = &self.fields.system_id {
@@ -241,8 +237,7 @@ impl egui::Widget for &mut BindApp {
                             ui.add(
                                 egui::TextEdit::singleline(&mut self.password)
                                     .char_limit(8)
-                                    .password(!self.password_visible)
-                                    .desired_width(320.0),
+                                    .password(!self.password_visible),
                             )
                             .on_hover_text("Max 8 ASCII characters")
                             .changed()
@@ -263,16 +258,12 @@ impl egui::Widget for &mut BindApp {
                         }
 
                         ui.label("System Type");
-                        ui.add(
-                            egui::TextEdit::singleline(&mut self.system_type)
-                                .char_limit(12)
-                                .desired_width(320.0),
-                        )
-                        .on_hover_text("Max 12 ASCII characters")
-                        .changed()
-                        .then(|| {
-                            self.update_system_type();
-                        });
+                        ui.add(egui::TextEdit::singleline(&mut self.system_type).char_limit(12))
+                            .on_hover_text("Max 12 ASCII characters")
+                            .changed()
+                            .then(|| {
+                                self.update_system_type();
+                            });
                         ui.end_row();
 
                         if let Err(err) = &self.fields.system_type {

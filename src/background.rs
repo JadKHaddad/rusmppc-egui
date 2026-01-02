@@ -71,7 +71,7 @@ impl BackgroundApp {
 
     fn builder(&self) -> InsightConnectionBuilder {
         Client::builder()
-            .enquire_link_interval(Duration::from_secs(30))
+            .enquire_link_interval(Duration::from_secs(3))
             .disable_interface_version_check()
             .events()
             .insights()
