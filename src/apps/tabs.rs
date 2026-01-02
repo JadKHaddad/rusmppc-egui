@@ -58,16 +58,12 @@ impl egui_dock::TabViewer for TabViewer {
         egui::Frame::new()
             .inner_margin(egui::Margin::same(16))
             .show(ui, |ui| {
-                egui::ScrollArea::vertical()
-                    .auto_shrink([false, false])
-                    .show(ui, |ui| {
-                        tab.ui(ui);
-                    });
+                tab.ui(ui);
             });
     }
 
     fn scroll_bars(&self, _tab: &Self::Tab) -> [bool; 2] {
-        [true, false]
+        [true, true]
     }
 }
 
