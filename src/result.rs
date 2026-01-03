@@ -61,6 +61,10 @@ impl AppUiError {
         Self::Field(SmppFieldError::SmDefaultMsgId)
     }
 
+    pub const fn invalid_priority_flag() -> Self {
+        Self::Field(SmppFieldError::PriorityFlag)
+    }
+
     pub const fn invalid_enquire_link_interval() -> Self {
         Self::Field(SmppFieldError::EnquireLinkInterval)
     }
@@ -84,6 +88,8 @@ pub enum SmppFieldError {
     ProtocolId,
     /// Invalid SM Default Msg ID
     SmDefaultMsgId,
+    /// Invalid Priority Flag
+    PriorityFlag,
     /// Invalid Enquire Link Interval
     EnquireLinkInterval,
 }
@@ -104,6 +110,9 @@ impl SmppFieldError {
             }
             SmppFieldError::SmDefaultMsgId => {
                 "SM Default Msg ID must be a valid unsigned 8-bit integer.".into()
+            }
+            SmppFieldError::PriorityFlag => {
+                "Priority Flag must be a valid unsigned 8-bit integer.".into()
             }
             SmppFieldError::EnquireLinkInterval => {
                 "Enquire Link Interval must be a valid positive integer.".into()
