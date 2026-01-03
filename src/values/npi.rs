@@ -1,7 +1,10 @@
 use rusmpp::values::Npi as RusmppNpi;
+use serde::{Deserialize, Serialize};
 use strum::{IntoStaticStr, VariantArray};
 
-#[derive(IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(
+    IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize,
+)]
 pub enum Npi {
     #[default]
     Unknown,

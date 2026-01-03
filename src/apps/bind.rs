@@ -12,6 +12,7 @@ use egui_material_icons::{
     icons::{ICON_VISIBILITY, ICON_VISIBILITY_OFF},
 };
 use rusmpp::{pdus::BindAny, types::COctetString};
+use serde::{Deserialize, Serialize};
 use strum::VariantArray;
 
 use crate::{
@@ -74,6 +75,17 @@ impl RusmppFields {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SerdeBindApp {
+    url: String,
+    system_id: String,
+    system_type: String,
+    addr_ton: Ton,
+    addr_npi: Npi,
+    interface_version: InterfaceVersion,
+    mode: BindMode,
+}
+
 pub struct BindApp {
     actions: ActionsChannel,
     url: String,
@@ -91,12 +103,18 @@ pub struct BindApp {
 }
 
 impl BindApp {
-    pub fn new(actions: ActionsChannel) -> Self {
-        let url = String::from("smpps://rusmpps.rusmpp.org:2776");
-        let system_id = String::from("system_id");
-        let password = String::from("password");
-        let system_type = String::from("system_type");
-
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_from_values(
+        actions: ActionsChannel,
+        url: String,
+        system_id: String,
+        password: String,
+        system_type: String,
+        addr_ton: Ton,
+        addr_npi: Npi,
+        interface_version: InterfaceVersion,
+        mode: BindMode,
+    ) -> Self {
         let fields = RusmppFields::new(&url, &system_id, &password, &system_type);
 
         Self {
@@ -105,14 +123,63 @@ impl BindApp {
             system_id,
             password,
             system_type,
-            addr_ton: Ton::default(),
-            addr_npi: Npi::default(),
-            interface_version: InterfaceVersion::default(),
-            mode: BindMode::default(),
+            addr_ton,
+            addr_npi,
+            interface_version,
+            mode,
             fields,
             bound: false,
             password_visible: false,
             loading: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub fn new_default(actions: ActionsChannel) -> Self {
+        let url = String::from("smpps://rusmpps.rusmpp.org:2776");
+        let system_id = String::from("system_id");
+        let password = String::new();
+        let system_type = String::from("system_type");
+        let addr_ton = Ton::default();
+        let addr_npi = Npi::default();
+        let interface_version = InterfaceVersion::default();
+        let mode = BindMode::default();
+
+        Self::new_from_values(
+            actions,
+            url,
+            system_id,
+            password,
+            system_type,
+            addr_ton,
+            addr_npi,
+            interface_version,
+            mode,
+        )
+    }
+
+    pub fn from_serde(actions: ActionsChannel, serde_bind_app: SerdeBindApp) -> Self {
+        Self::new_from_values(
+            actions,
+            serde_bind_app.url,
+            serde_bind_app.system_id,
+            String::new(),
+            serde_bind_app.system_type,
+            serde_bind_app.addr_ton,
+            serde_bind_app.addr_npi,
+            serde_bind_app.interface_version,
+            serde_bind_app.mode,
+        )
+    }
+
+    pub fn to_serde(&self) -> SerdeBindApp {
+        SerdeBindApp {
+            url: self.url.clone(),
+            system_id: self.system_id.clone(),
+            system_type: self.system_type.clone(),
+            addr_ton: self.addr_ton,
+            addr_npi: self.addr_npi,
+            interface_version: self.interface_version,
+            mode: self.mode,
         }
     }
 

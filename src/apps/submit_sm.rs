@@ -11,6 +11,7 @@ use rusmpp::{
     types::COctetString,
     values::{EsmClass as RusmppEsmClass, ServiceType},
 };
+use serde::{Deserialize, Serialize};
 use strum::VariantArray;
 
 use crate::{
@@ -86,6 +87,21 @@ impl RusmppFields {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SerdeSubmitSmApp {
+    short_message: String,
+    service_type: String,
+    source_addr_ton: Ton,
+    source_addr_npi: Npi,
+    source_addr: String,
+    dest_addr_ton: Ton,
+    dest_addr_npi: Npi,
+    destination_addr: String,
+    data_coding: DataCoding,
+    esm_class: EsmClass,
+    last_gsm_features: GsmFeatures,
+}
+
 pub struct SubmitSmApp {
     actions: ActionsChannel,
     short_message: String,
@@ -105,26 +121,36 @@ pub struct SubmitSmApp {
 }
 
 impl SubmitSmApp {
-    pub fn new(actions: ActionsChannel) -> Self {
-        let service_type = String::new();
-        let source_addr = String::new();
-        let destination_addr = String::new();
-
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_from_values(
+        actions: ActionsChannel,
+        short_message: String,
+        service_type: String,
+        source_addr_ton: Ton,
+        source_addr_npi: Npi,
+        source_addr: String,
+        dest_addr_ton: Ton,
+        dest_addr_npi: Npi,
+        destination_addr: String,
+        data_coding: DataCoding,
+        esm_class: EsmClass,
+        last_gsm_features: GsmFeatures,
+    ) -> Self {
         let fields = RusmppFields::new(&service_type, &source_addr, &destination_addr);
 
         let mut app = Self {
             actions,
-            short_message: String::from("Hello Rusmppc!"),
+            short_message,
             service_type,
-            source_addr_ton: Ton::default(),
-            source_addr_npi: Npi::default(),
+            source_addr_ton,
+            source_addr_npi,
             source_addr,
-            dest_addr_ton: Ton::default(),
-            dest_addr_npi: Npi::default(),
+            dest_addr_ton,
+            dest_addr_npi,
             destination_addr,
-            data_coding: DataCoding::default(),
-            esm_class: EsmClass::default(),
-            last_gsm_features: GsmFeatures::default(),
+            data_coding,
+            esm_class,
+            last_gsm_features,
             reference: 0,
             fields,
             bound: false,
@@ -133,6 +159,68 @@ impl SubmitSmApp {
         app.update_short_message();
 
         app
+    }
+
+    pub fn new_default(actions: ActionsChannel) -> Self {
+        let service_type = String::new();
+        let source_addr = String::new();
+        let source_addr_ton = Ton::default();
+        let source_addr_npi = Npi::default();
+        let destination_addr = String::new();
+        let dest_addr_ton = Ton::default();
+        let dest_addr_npi = Npi::default();
+        let short_message = String::from("Hello Rusmppc!");
+        let data_coding = DataCoding::default();
+        let esm_class = EsmClass::default();
+        let last_gsm_features = GsmFeatures::default();
+
+        Self::new_from_values(
+            actions,
+            short_message,
+            service_type,
+            source_addr_ton,
+            source_addr_npi,
+            source_addr,
+            dest_addr_ton,
+            dest_addr_npi,
+            destination_addr,
+            data_coding,
+            esm_class,
+            last_gsm_features,
+        )
+    }
+
+    pub fn from_serde(actions: ActionsChannel, serde_app: SerdeSubmitSmApp) -> Self {
+        Self::new_from_values(
+            actions,
+            serde_app.short_message,
+            serde_app.service_type,
+            serde_app.source_addr_ton,
+            serde_app.source_addr_npi,
+            serde_app.source_addr,
+            serde_app.dest_addr_ton,
+            serde_app.dest_addr_npi,
+            serde_app.destination_addr,
+            serde_app.data_coding,
+            serde_app.esm_class,
+            serde_app.last_gsm_features,
+        )
+    }
+
+    pub fn to_serde(&self) -> SerdeSubmitSmApp {
+        SerdeSubmitSmApp {
+            short_message: self.short_message.clone(),
+            service_type: self.service_type.clone(),
+            source_addr_ton: self.source_addr_ton,
+            source_addr_npi: self.source_addr_npi,
+            source_addr: self.source_addr.clone(),
+            dest_addr_ton: self.dest_addr_ton,
+            dest_addr_npi: self.dest_addr_npi,
+            destination_addr: self.destination_addr.clone(),
+            data_coding: self.data_coding,
+            esm_class: self.esm_class,
+            last_gsm_features: self.last_gsm_features,
+        }
     }
 
     /// Creates the appropriate encoder on the fly based on the selected data coding.

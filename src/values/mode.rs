@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use strum::VariantArray;
 
-#[derive(VariantArray, Clone, Copy, Default, PartialEq, Eq, Debug)]
+#[derive(VariantArray, Clone, Copy, Default, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum BindMode {
     #[default]
     Tx,

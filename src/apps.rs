@@ -1,11 +1,11 @@
 mod bind;
-use bind::BindApp;
+use bind::{BindApp, SerdeBindApp};
 
 mod submit_sm;
-use submit_sm::SubmitSmApp;
+use submit_sm::{SerdeSubmitSmApp, SubmitSmApp};
 
 mod logs;
-use logs::LogsApp;
+use logs::{LogsApp, SerdeLogsApp};
 
 mod tabs;
-pub use tabs::Tabs;
+pub use tabs::{SerdeTabs, Tabs};

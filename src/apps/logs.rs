@@ -1,6 +1,10 @@
 use egui_virtual_list::VirtualList;
+use serde::{Deserialize, Serialize};
 
 use crate::state::EventsHolder;
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SerdeLogsApp {}
 
 pub struct LogsApp {
     events_holder: EventsHolder,
@@ -8,11 +12,22 @@ pub struct LogsApp {
 }
 
 impl LogsApp {
-    pub fn new(events_holder: EventsHolder) -> Self {
+    pub fn new_default(events_holder: EventsHolder) -> Self {
         Self {
             events_holder,
             list: VirtualList::new(),
         }
+    }
+
+    pub fn from_serde(events_holder: EventsHolder, _serde: SerdeLogsApp) -> Self {
+        Self {
+            events_holder,
+            list: VirtualList::new(),
+        }
+    }
+
+    pub fn to_serde(&self) -> SerdeLogsApp {
+        SerdeLogsApp {}
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui) {

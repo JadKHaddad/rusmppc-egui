@@ -3,9 +3,10 @@ use rusmpp::values::{
     GsmFeatures as RusmppGsmFeatures, MessageType as RusmppMessageType,
     MessagingMode as RusmppMessagingMode,
 };
+use serde::{Deserialize, Serialize};
 use strum::{IntoStaticStr, VariantArray};
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Serialize, Deserialize)]
 pub struct EsmClass {
     pub messaging_mode: MessagingMode,
     pub message_type: MessageType,
@@ -40,7 +41,9 @@ impl From<EsmClass> for RusmppEsmClass {
     }
 }
 
-#[derive(IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(
+    IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize,
+)]
 pub enum MessagingMode {
     #[default]
     Default,
@@ -60,7 +63,9 @@ impl From<MessagingMode> for RusmppMessagingMode {
     }
 }
 
-#[derive(IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(
+    IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize,
+)]
 pub enum MessageType {
     #[default]
     Default,
@@ -82,7 +87,9 @@ impl From<MessageType> for RusmppMessageType {
     }
 }
 
-#[derive(IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(
+    IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize,
+)]
 pub enum Ansi41Specific {
     #[default]
     NotSelected,
@@ -108,7 +115,9 @@ impl From<Ansi41Specific> for RusmppAnsi41Specific {
     }
 }
 
-#[derive(IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(
+    IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize,
+)]
 pub enum GsmFeatures {
     #[default]
     NotSelected,

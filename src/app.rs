@@ -1,12 +1,18 @@
 use eframe::AppCreator;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     actions::{Action, ActionsChannel},
-    apps::Tabs,
+    apps::{SerdeTabs, Tabs},
     background::BackgroundApp,
     state::AppState,
     widgets::BindIndicator,
 };
+
+#[derive(Serialize, Deserialize)]
+struct SerdeApp {
+    tabs: SerdeTabs,
+}
 
 pub struct App {
     state: AppState,
@@ -15,14 +21,52 @@ pub struct App {
 }
 
 impl App {
-    fn new(cc: &eframe::CreationContext<'_>, state: AppState, actions: ActionsChannel) -> Self {
+    fn new_from_values(cc: &eframe::CreationContext<'_>, state: AppState, tabs: Tabs) -> Self {
         egui_material_icons::initialize(&cc.egui_ctx);
 
         Self {
-            tabs: Tabs::new(state.holder(), actions),
+            tabs,
             state,
             version: env!("CARGO_PKG_VERSION"),
         }
+    }
+
+    fn new_default(
+        cc: &eframe::CreationContext<'_>,
+        state: AppState,
+        actions: ActionsChannel,
+    ) -> Self {
+        let tabs = Tabs::new_default(state.holder(), actions);
+
+        Self::new_from_values(cc, state, tabs)
+    }
+
+    fn from_serde(
+        cc: &eframe::CreationContext<'_>,
+        state: AppState,
+        actions: ActionsChannel,
+        serde_app: SerdeApp,
+    ) -> Self {
+        let tabs = Tabs::from_serde(state.holder(), actions, serde_app.tabs);
+
+        Self::new_from_values(cc, state, tabs)
+    }
+
+    fn to_serde(&self) -> SerdeApp {
+        SerdeApp {
+            tabs: self.tabs.to_serde(),
+        }
+    }
+
+    fn load_or_default(
+        cc: &eframe::CreationContext<'_>,
+        state: AppState,
+        actions: ActionsChannel,
+    ) -> Self {
+        cc.storage
+            .and_then(|storage| eframe::get_value::<SerdeApp>(storage, eframe::APP_KEY))
+            .map(|serde_app| Self::from_serde(cc, state.clone(), actions.clone(), serde_app))
+            .unwrap_or(Self::new_default(cc, state, actions))
     }
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -44,7 +88,7 @@ impl App {
                 runtime.block_on(background_app.run(rx));
             });
 
-            Ok(Box::new(App::new(cc, state, actions)))
+            Ok(Box::new(App::load_or_default(cc, state, actions)))
         })
     }
 
@@ -60,7 +104,7 @@ impl App {
 
             wasm_bindgen_futures::spawn_local(background_app.run(rx));
 
-            Ok(Box::new(App::new(cc, state, actions)))
+            Ok(Box::new(App::load_or_default(cc, state, actions)))
         })
     }
 }
@@ -88,5 +132,9 @@ impl eframe::App for App {
                 self.tabs.ui(ctx, ui);
             });
         });
+    }
+
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, &self.to_serde());
     }
 }

@@ -1,7 +1,8 @@
 use rusmpp::values::InterfaceVersion as RusmppInterfaceVersion;
+use serde::{Deserialize, Serialize};
 use strum::VariantArray;
 
-#[derive(VariantArray, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(VariantArray, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum InterfaceVersion {
     Smpp3_3,
     Smpp3_4,
