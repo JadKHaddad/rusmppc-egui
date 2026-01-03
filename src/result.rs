@@ -52,6 +52,10 @@ impl AppUiError {
     pub const fn invalid_destination_addr() -> Self {
         Self::Field(SmppFieldError::DestinationAddr)
     }
+
+    pub const fn invalid_enquire_link_interval() -> Self {
+        Self::Field(SmppFieldError::EnquireLinkInterval)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -68,6 +72,8 @@ pub enum SmppFieldError {
     SourceAddr,
     /// Invalid Destination Address
     DestinationAddr,
+    /// Invalid Enquire Link Interval
+    EnquireLinkInterval,
 }
 
 impl SmppFieldError {
@@ -80,6 +86,9 @@ impl SmppFieldError {
             SmppFieldError::SourceAddr => "Source Address must be 0-20 ascii octets long.".into(),
             SmppFieldError::DestinationAddr => {
                 "Destination Address must be 0-20 ascii octets long.".into()
+            }
+            SmppFieldError::EnquireLinkInterval => {
+                "Enquire Link Interval must be a valid positive integer.".into()
             }
         }
     }

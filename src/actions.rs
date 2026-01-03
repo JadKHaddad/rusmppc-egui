@@ -18,9 +18,17 @@ impl ActionsChannel {
         let _ = self.sender.send(action);
     }
 
-    pub fn bind(&self, mode: BindMode, url: SmppUrl, bind: BindAny, loading: Arc<AtomicBool>) {
+    pub fn bind(
+        &self,
+        mode: BindMode,
+        url: SmppUrl,
+        interval: u64,
+        bind: BindAny,
+        loading: Arc<AtomicBool>,
+    ) {
         let action = Action::Bind(BindAction {
             mode,
+            interval,
             url,
             bind,
             loading,
@@ -50,6 +58,7 @@ pub enum Action {
 pub struct BindAction {
     pub mode: BindMode,
     pub url: SmppUrl,
+    pub interval: u64,
     pub bind: BindAny,
     pub loading: Arc<AtomicBool>,
 }

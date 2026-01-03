@@ -69,9 +69,9 @@ impl BackgroundApp {
         self.request_repaint();
     }
 
-    fn builder(&self) -> InsightConnectionBuilder {
+    fn builder(&self, interval: u64) -> InsightConnectionBuilder {
         Client::builder()
-            .enquire_link_interval(Duration::from_secs(3))
+            .enquire_link_interval(Duration::from_secs(interval))
             .disable_interface_version_check()
             .events()
             .insights()
@@ -81,8 +81,9 @@ impl BackgroundApp {
     async fn connect(
         &self,
         url: SmppUrl,
+        interval: u64,
     ) -> Result<(Client, impl Stream<Item = InsightEvent> + 'static), AppActionError> {
-        self.builder()
+        self.builder(interval)
             .connect(url.to_string())
             .await
             .map_err(|err| AppActionError::Connection(err.into()))
@@ -92,6 +93,7 @@ impl BackgroundApp {
     async fn connect(
         &self,
         url: SmppUrl,
+        interval: u64,
     ) -> Result<(Client, impl Stream<Item = InsightEvent> + 'static), AppActionError> {
         use gloo_net::websocket::{Message, futures::WebSocket};
         use tokio_util::compat::FuturesAsyncReadCompatExt;
@@ -137,7 +139,7 @@ impl BackgroundApp {
                 ))),
             })??;
 
-        let client = self.builder().connected(ws.compat());
+        let client = self.builder(interval).connected(ws.compat());
 
         Ok(client)
     }
@@ -149,7 +151,7 @@ impl BackgroundApp {
 
         action.loading.store(true, Ordering::Relaxed);
 
-        match self.connect(action.url).await {
+        match self.connect(action.url, action.interval).await {
             Err(err) => {
                 self.push_event(Event::Error(err));
             }

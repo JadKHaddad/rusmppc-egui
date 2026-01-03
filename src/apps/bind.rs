@@ -29,10 +29,17 @@ struct RusmppFields {
     system_id: AppResult<COctetString<1, 16>>,
     password: AppResult<COctetString<1, 9>>,
     system_type: AppResult<COctetString<1, 13>>,
+    enquire_link_interval_secs: AppResult<u64>,
 }
 
 impl RusmppFields {
-    fn new(url: &str, system_id: &str, password: &str, system_type: &str) -> Self {
+    fn new(
+        url: &str,
+        system_id: &str,
+        password: &str,
+        system_type: &str,
+        enquire_link_interval_secs: &str,
+    ) -> Self {
         Self {
             url: SmppUrl::new(url).map_err(AppUiError::Url),
             system_id: COctetString::from_str(system_id)
@@ -40,6 +47,9 @@ impl RusmppFields {
             password: COctetString::from_str(password).map_err(|_| AppUiError::invalid_password()),
             system_type: COctetString::from_str(system_type)
                 .map_err(|_| AppUiError::invalid_system_type()),
+            enquire_link_interval_secs: enquire_link_interval_secs
+                .parse::<u64>()
+                .map_err(|_| AppUiError::invalid_enquire_link_interval()),
         }
     }
 
@@ -62,15 +72,22 @@ impl RusmppFields {
             COctetString::from_str(system_type).map_err(|_| AppUiError::invalid_system_type());
     }
 
+    fn set_enquire_link_interval_secs(&mut self, secs: &str) {
+        self.enquire_link_interval_secs = secs
+            .parse::<u64>()
+            .map_err(|_| AppUiError::invalid_enquire_link_interval());
+    }
+
     fn all_fields_valid(&self) -> bool {
         matches!(
             (
                 &self.url,
                 &self.system_id,
                 &self.password,
-                &self.system_type
+                &self.system_type,
+                &self.enquire_link_interval_secs,
             ),
-            (Ok(_), Ok(_), Ok(_), Ok(_))
+            (Ok(_), Ok(_), Ok(_), Ok(_), Ok(_))
         )
     }
 }
@@ -84,6 +101,7 @@ pub struct SerdeBindApp {
     addr_npi: Npi,
     interface_version: InterfaceVersion,
     mode: BindMode,
+    enquire_link_interval_secs: String,
 }
 
 pub struct BindApp {
@@ -96,6 +114,7 @@ pub struct BindApp {
     addr_npi: Npi,
     interface_version: InterfaceVersion,
     mode: BindMode,
+    enquire_link_interval_secs: String,
     fields: RusmppFields,
     bound: bool,
     password_visible: bool,
@@ -114,8 +133,15 @@ impl BindApp {
         addr_npi: Npi,
         interface_version: InterfaceVersion,
         mode: BindMode,
+        enquire_link_interval_secs: String,
     ) -> Self {
-        let fields = RusmppFields::new(&url, &system_id, &password, &system_type);
+        let fields = RusmppFields::new(
+            &url,
+            &system_id,
+            &password,
+            &system_type,
+            &enquire_link_interval_secs,
+        );
 
         Self {
             actions,
@@ -127,6 +153,7 @@ impl BindApp {
             addr_npi,
             interface_version,
             mode,
+            enquire_link_interval_secs,
             fields,
             bound: false,
             password_visible: false,
@@ -143,6 +170,7 @@ impl BindApp {
         let addr_npi = Npi::default();
         let interface_version = InterfaceVersion::default();
         let mode = BindMode::default();
+        let enquire_link_interval_secs = String::from("30");
 
         Self::new_from_values(
             actions,
@@ -154,6 +182,7 @@ impl BindApp {
             addr_npi,
             interface_version,
             mode,
+            enquire_link_interval_secs,
         )
     }
 
@@ -168,6 +197,7 @@ impl BindApp {
             serde_bind_app.addr_npi,
             serde_bind_app.interface_version,
             serde_bind_app.mode,
+            serde_bind_app.enquire_link_interval_secs,
         )
     }
 
@@ -180,6 +210,7 @@ impl BindApp {
             addr_npi: self.addr_npi,
             interface_version: self.interface_version,
             mode: self.mode,
+            enquire_link_interval_secs: self.enquire_link_interval_secs.clone(),
         }
     }
 
@@ -196,11 +227,12 @@ impl BindApp {
         Ok(bind_pdu)
     }
 
-    fn get_url_and_pdu(&self) -> AppResult<(SmppUrl, BindAny)> {
+    fn get_url_and_interval_and_and_pdu(&self) -> AppResult<(SmppUrl, u64, BindAny)> {
         let url = self.fields.url.clone()?;
+        let interval = self.fields.enquire_link_interval_secs.clone()?;
         let bind_pdu = self.create_bind_pdu()?;
 
-        Ok((url, bind_pdu))
+        Ok((url, interval, bind_pdu))
     }
 
     fn update_url(&mut self) {
@@ -220,6 +252,13 @@ impl BindApp {
     fn update_system_type(&mut self) {
         self.system_type.retain(|c| c.is_ascii());
         self.fields.set_system_type(&self.system_type);
+    }
+
+    fn update_enquire_link_interval_secs(&mut self) {
+        self.enquire_link_interval_secs
+            .retain(|c| c.is_ascii_digit());
+        self.fields
+            .set_enquire_link_interval_secs(&self.enquire_link_interval_secs);
     }
 
     fn toggle_password_visibility(&mut self) {
@@ -249,9 +288,9 @@ impl BindApp {
     fn on_bind_button_clicked(&mut self) {
         if self.bound {
             self.actions.unbind(self.loading.clone());
-        } else if let Ok((url, bind)) = self.get_url_and_pdu() {
+        } else if let Ok((url, interval, bind)) = self.get_url_and_interval_and_and_pdu() {
             self.actions
-                .bind(self.mode, url, bind, self.loading.clone());
+                .bind(self.mode, url, interval, bind, self.loading.clone());
         }
     }
 
@@ -259,19 +298,18 @@ impl BindApp {
         let loading = self.loading.load(Ordering::Relaxed);
 
         ui.vertical_centered(|ui| {
+            let display_err = |ui: &mut egui::Ui, err: &AppUiError| {
+                ui.allocate_space(egui::vec2(0.0, 0.0));
+                ui.colored_label(FUSION_RED, err.display_message());
+                ui.end_row();
+            };
+
             ui.add_enabled_ui(!loading && !self.bound, |ui| {
                 egui::Grid::new("bind_grid_1")
                     .num_columns(2)
                     .spacing([12.0, 10.0])
                     .striped(false)
                     .show(ui, |ui| {
-                        // this will now be used for the url error
-                        let display_err = |ui: &mut egui::Ui, err: &AppUiError| {
-                            ui.allocate_space(egui::vec2(0.0, 0.0));
-                            ui.colored_label(FUSION_RED, err.display_message());
-                            ui.end_row();
-                        };
-
                         ui.label("URL");
                         ui.add(egui::TextEdit::singleline(&mut self.url))
                             .changed()
@@ -369,12 +407,28 @@ impl BindApp {
                         ui.end_row();
 
                         ui.label("Bind Mode");
-                        ui.add(ComboBox::new(
+                        let bind_mode_combo_response = ui.add(ComboBox::new(
                             "bind_bind_mode",
                             &mut self.mode,
                             BindMode::VARIANTS,
                         ));
                         ui.end_row();
+
+                        ui.label("Enquire Link Interval");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.enquire_link_interval_secs)
+                                .desired_width(bind_mode_combo_response.rect.width() - 8.0),
+                        )
+                        .on_hover_text("Enquire Link Interval in seconds")
+                        .changed()
+                        .then(|| {
+                            self.update_enquire_link_interval_secs();
+                        });
+                        ui.end_row();
+
+                        if let Err(err) = &self.fields.enquire_link_interval_secs {
+                            display_err(ui, err);
+                        }
                     });
 
                 ui.add_space(20.0);
