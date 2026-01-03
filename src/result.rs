@@ -53,6 +53,14 @@ impl AppUiError {
         Self::Field(SmppFieldError::DestinationAddr)
     }
 
+    pub const fn invalid_protocol_id() -> Self {
+        Self::Field(SmppFieldError::ProtocolId)
+    }
+
+    pub const fn invalid_sm_default_msg_id() -> Self {
+        Self::Field(SmppFieldError::SmDefaultMsgId)
+    }
+
     pub const fn invalid_enquire_link_interval() -> Self {
         Self::Field(SmppFieldError::EnquireLinkInterval)
     }
@@ -72,6 +80,10 @@ pub enum SmppFieldError {
     SourceAddr,
     /// Invalid Destination Address
     DestinationAddr,
+    /// Invalid Protocol ID
+    ProtocolId,
+    /// Invalid SM Default Msg ID
+    SmDefaultMsgId,
     /// Invalid Enquire Link Interval
     EnquireLinkInterval,
 }
@@ -86,6 +98,12 @@ impl SmppFieldError {
             SmppFieldError::SourceAddr => "Source Address must be 0-20 ascii octets long.".into(),
             SmppFieldError::DestinationAddr => {
                 "Destination Address must be 0-20 ascii octets long.".into()
+            }
+            SmppFieldError::ProtocolId => {
+                "Protocol ID must be a valid unsigned 8-bit integer.".into()
+            }
+            SmppFieldError::SmDefaultMsgId => {
+                "SM Default Msg ID must be a valid unsigned 8-bit integer.".into()
             }
             SmppFieldError::EnquireLinkInterval => {
                 "Enquire Link Interval must be a valid positive integer.".into()

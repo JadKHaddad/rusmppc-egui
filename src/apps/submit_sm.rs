@@ -31,11 +31,19 @@ struct RusmppFields {
     service_type: AppResult<COctetString<1, 6>>,
     source_addr: AppResult<COctetString<1, 21>>,
     destination_addr: AppResult<COctetString<1, 21>>,
+    protocol_id: AppResult<u8>,
+    sm_default_msg_id: AppResult<u8>,
     submit_sms: AppResult<Vec<SubmitSm>>,
 }
 
 impl RusmppFields {
-    fn new(service_type: &str, source_addr: &str, destination_addr: &str) -> Self {
+    fn new(
+        service_type: &str,
+        source_addr: &str,
+        destination_addr: &str,
+        protocol_id: &str,
+        sm_default_msg_id: &str,
+    ) -> Self {
         Self {
             service_type: COctetString::from_str(service_type)
                 .map_err(|_| AppUiError::invalid_service_type()),
@@ -43,6 +51,12 @@ impl RusmppFields {
                 .map_err(|_| AppUiError::invalid_source_addr()),
             destination_addr: COctetString::from_str(destination_addr)
                 .map_err(|_| AppUiError::invalid_destination_addr()),
+            protocol_id: protocol_id
+                .parse::<u8>()
+                .map_err(|_| AppUiError::invalid_protocol_id()),
+            sm_default_msg_id: sm_default_msg_id
+                .parse::<u8>()
+                .map_err(|_| AppUiError::invalid_sm_default_msg_id()),
             submit_sms: Ok(Vec::new()),
         }
     }
@@ -80,9 +94,11 @@ impl RusmppFields {
                 &self.service_type,
                 &self.source_addr,
                 &self.destination_addr,
+                &self.protocol_id,
+                &self.sm_default_msg_id,
                 self.sms_valid_and_not_empty()
             ),
-            (Ok(_), Ok(_), Ok(_), true)
+            (Ok(_), Ok(_), Ok(_), Ok(_), Ok(_), true)
         )
     }
 }
@@ -100,6 +116,8 @@ pub struct SerdeSubmitSmApp {
     data_coding: DataCoding,
     esm_class: EsmClass,
     last_gsm_features: GsmFeatures,
+    protocol_id: String,
+    sm_default_msg_id: String,
 }
 
 pub struct SubmitSmApp {
@@ -115,6 +133,8 @@ pub struct SubmitSmApp {
     data_coding: DataCoding,
     esm_class: EsmClass,
     last_gsm_features: GsmFeatures,
+    protocol_id: String,
+    sm_default_msg_id: String,
     reference: u8,
     fields: RusmppFields,
     bound: bool,
@@ -135,8 +155,16 @@ impl SubmitSmApp {
         data_coding: DataCoding,
         esm_class: EsmClass,
         last_gsm_features: GsmFeatures,
+        protocol_id: String,
+        sm_default_msg_id: String,
     ) -> Self {
-        let fields = RusmppFields::new(&service_type, &source_addr, &destination_addr);
+        let fields = RusmppFields::new(
+            &service_type,
+            &source_addr,
+            &destination_addr,
+            &protocol_id,
+            &sm_default_msg_id,
+        );
 
         let mut app = Self {
             actions,
@@ -151,6 +179,8 @@ impl SubmitSmApp {
             data_coding,
             esm_class,
             last_gsm_features,
+            protocol_id,
+            sm_default_msg_id,
             reference: 0,
             fields,
             bound: false,
@@ -173,6 +203,8 @@ impl SubmitSmApp {
         let data_coding = DataCoding::default();
         let esm_class = EsmClass::default();
         let last_gsm_features = GsmFeatures::default();
+        let protocol_id = String::from("0");
+        let sm_default_msg_id = String::from("0");
 
         Self::new_from_values(
             actions,
@@ -187,6 +219,8 @@ impl SubmitSmApp {
             data_coding,
             esm_class,
             last_gsm_features,
+            protocol_id,
+            sm_default_msg_id,
         )
     }
 
@@ -204,6 +238,8 @@ impl SubmitSmApp {
             serde_app.data_coding,
             serde_app.esm_class,
             serde_app.last_gsm_features,
+            serde_app.protocol_id,
+            serde_app.sm_default_msg_id,
         )
     }
 
@@ -220,6 +256,8 @@ impl SubmitSmApp {
             data_coding: self.data_coding,
             esm_class: self.esm_class,
             last_gsm_features: self.last_gsm_features,
+            protocol_id: self.protocol_id.clone(),
+            sm_default_msg_id: self.sm_default_msg_id.clone(),
         }
     }
 
@@ -252,6 +290,26 @@ impl SubmitSmApp {
         self.update_short_message();
     }
 
+    fn update_protocol_id(&mut self) {
+        self.protocol_id.retain(|c| c.is_ascii_digit());
+        self.fields.protocol_id = self
+            .protocol_id
+            .parse::<u8>()
+            .map_err(|_| AppUiError::invalid_protocol_id());
+
+        self.update_short_message();
+    }
+
+    fn update_sm_default_msg_id(&mut self) {
+        self.sm_default_msg_id.retain(|c| c.is_ascii_digit());
+        self.fields.sm_default_msg_id = self
+            .sm_default_msg_id
+            .parse::<u8>()
+            .map_err(|_| AppUiError::invalid_sm_default_msg_id());
+
+        self.update_short_message();
+    }
+
     fn update_source_addr(&mut self) {
         self.source_addr.retain(|c| c.is_ascii());
         self.fields.set_source_addr(&self.source_addr);
@@ -276,6 +334,8 @@ impl SubmitSmApp {
             .dest_addr_npi(self.dest_addr_npi.into())
             .destination_addr(self.fields.destination_addr.clone()?)
             .esm_class(self.esm_class.into())
+            .protocol_id(self.fields.protocol_id.clone()?)
+            .sm_default_msg_id(self.fields.sm_default_msg_id.clone()?)
             .build();
 
         Ok(submit_sm)
@@ -371,6 +431,32 @@ impl SubmitSmApp {
                     ui.end_row();
 
                     if let Err(err) = &self.fields.service_type {
+                        display_err(ui, err);
+                    }
+
+                    ui.label("Protocol ID");
+                    ui.add(egui::TextEdit::singleline(&mut self.protocol_id).char_limit(3))
+                        .on_hover_text("Unsigned 8-bit integer")
+                        .changed()
+                        .then(|| {
+                            self.update_protocol_id();
+                        });
+                    ui.end_row();
+
+                    if let Err(err) = &self.fields.protocol_id {
+                        display_err(ui, err);
+                    }
+
+                    ui.label("SM Default Msg ID");
+                    ui.add(egui::TextEdit::singleline(&mut self.sm_default_msg_id).char_limit(3))
+                        .on_hover_text("Unsigned 8-bit integer")
+                        .changed()
+                        .then(|| {
+                            self.update_sm_default_msg_id();
+                        });
+                    ui.end_row();
+
+                    if let Err(err) = &self.fields.sm_default_msg_id {
                         display_err(ui, err);
                     }
                 });
