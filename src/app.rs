@@ -122,7 +122,8 @@ impl eframe::App for App {
                     .show(ui, |ui| {
                         ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
                             ui.label(self.version);
-                            ui.add_space(ui.available_width() - BindIndicator::size().x);
+                            ui.add_space(ui.available_width() - BindIndicator::size().x * 3.0);
+                            egui::widgets::global_theme_preference_switch(ui);
                             ui.add(BindIndicator::new(bound));
                         });
                     });

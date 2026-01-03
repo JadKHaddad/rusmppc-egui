@@ -10,6 +10,10 @@ impl BindIndicator {
     pub const fn size() -> egui::Vec2 {
         egui::vec2(12.0, 12.0)
     }
+
+    const fn on_hover_text(&self) -> &'static str {
+        if self.0 { "Bound" } else { "Unbound" }
+    }
 }
 
 impl egui::Widget for BindIndicator {
@@ -20,6 +24,8 @@ impl egui::Widget for BindIndicator {
 
         ui.painter().circle_filled(rect.center(), 6.0, color);
 
-        response
+        response.on_hover_ui(|ui| {
+            ui.label(self.on_hover_text());
+        })
     }
 }
