@@ -19,14 +19,15 @@ use crate::{
     colors::{FUSION_RED, HIGH_BLUE},
     result::{AppResult, AppUiError, MultiPartError},
     values::{
-        Ansi41Specific, DataCoding, EsmClass, GsmFeatures, MessageType, MessagingMode, Npi, Ton,
+        Ansi41CbsPriorityFlag, Ansi41Specific, Ansi136PriorityFlag, DataCoding, EsmClass,
+        GsmCbsPriorityFlag, GsmFeatures, GsmSmsPriorityFlag, Is95PriorityFlag, MessageType,
+        MessagingMode, Npi, Ton,
     },
     widgets::ComboBox,
 };
 
 mod encoder;
 
-#[derive(Debug)]
 struct RusmppFields {
     service_type: AppResult<COctetString<1, 6>>,
     source_addr: AppResult<COctetString<1, 21>>,
@@ -34,7 +35,42 @@ struct RusmppFields {
     protocol_id: AppResult<u8>,
     sm_default_msg_id: AppResult<u8>,
     priority_flag: AppResult<u8>,
+    priority_flag_types: PriorityFlagTypes,
     submit_sms: AppResult<Vec<SubmitSm>>,
+}
+
+#[derive(Default)]
+struct PriorityFlagTypes {
+    gsm_sms: Option<GsmSmsPriorityFlag>,
+    gsm_cbs: Option<GsmCbsPriorityFlag>,
+    ansi136: Option<Ansi136PriorityFlag>,
+    ansi41_cbs: Option<Ansi41CbsPriorityFlag>,
+    is95: Option<Is95PriorityFlag>,
+}
+
+impl PriorityFlagTypes {
+    const fn from_u8(value: u8) -> Self {
+        Self {
+            gsm_sms: GsmSmsPriorityFlag::from_u8(value),
+            gsm_cbs: GsmCbsPriorityFlag::from_u8(value),
+            ansi136: Ansi136PriorityFlag::from_u8(value),
+            ansi41_cbs: Ansi41CbsPriorityFlag::from_u8(value),
+            is95: Is95PriorityFlag::from_u8(value),
+        }
+    }
+
+    fn text(&self) -> String {
+        let gsm_sms = self.gsm_sms.map(<&'static str>::from).unwrap_or("N/A");
+        let gsm_cbs = self.gsm_cbs.map(<&'static str>::from).unwrap_or("N/A");
+        let ansi136 = self.ansi136.map(<&'static str>::from).unwrap_or("N/A");
+        let ansi41_cbs = self.ansi41_cbs.map(<&'static str>::from).unwrap_or("N/A");
+        let is95 = self.is95.map(<&'static str>::from).unwrap_or("N/A");
+
+        format!(
+            "GSM SMS: {}\nGSM CBS: {}\nANSI-136: {}\nANSI-41 CBS: {}\nIS-95: {}",
+            gsm_sms, gsm_cbs, ansi136, ansi41_cbs, is95
+        )
+    }
 }
 
 impl RusmppFields {
@@ -46,7 +82,7 @@ impl RusmppFields {
         sm_default_msg_id: &str,
         priority_flag: &str,
     ) -> Self {
-        Self {
+        let mut fields = Self {
             service_type: COctetString::from_str(service_type)
                 .map_err(|_| AppUiError::invalid_service_type()),
             source_addr: COctetString::from_str(source_addr)
@@ -62,8 +98,13 @@ impl RusmppFields {
             priority_flag: priority_flag
                 .parse::<u8>()
                 .map_err(|_| AppUiError::invalid_priority_flag()),
+            priority_flag_types: PriorityFlagTypes::default(),
             submit_sms: Ok(Vec::new()),
-        }
+        };
+
+        fields.update_priority_flag_types();
+
+        fields
     }
 
     fn set_service_type(&mut self, service_type: &str) {
@@ -97,6 +138,16 @@ impl RusmppFields {
         self.priority_flag = priority_flag
             .parse::<u8>()
             .map_err(|_| AppUiError::invalid_priority_flag());
+
+        self.update_priority_flag_types();
+    }
+
+    fn update_priority_flag_types(&mut self) {
+        self.priority_flag_types = self
+            .priority_flag
+            .as_ref()
+            .map(|value| PriorityFlagTypes::from_u8(*value))
+            .unwrap_or_default();
     }
 
     fn sms_valid_and_not_empty(&self) -> bool {
@@ -494,7 +545,9 @@ impl SubmitSmApp {
                         display_err(ui, err);
                     }
 
-                    ui.label("Priority Flag");
+                    ui.label("Priority Flag").on_hover_ui(|ui| {
+                        ui.label(self.fields.priority_flag_types.text());
+                    });
                     ui.add(egui::TextEdit::singleline(&mut self.priority_flag).char_limit(3))
                         .on_hover_text("Unsigned 8-bit integer")
                         .changed()
