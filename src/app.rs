@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use eframe::AppCreator;
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +8,7 @@ use crate::{
     apps::{SerdeTabs, Tabs},
     background::BackgroundApp,
     state::AppState,
-    widgets::BindIndicator,
+    widgets::{BindIndicator, EventIndicator},
 };
 
 #[derive(Serialize, Deserialize)]
@@ -17,39 +19,65 @@ struct SerdeApp {
 pub struct App {
     state: AppState,
     tabs: Tabs,
+    incoming_event_indicator: EventIndicator,
+    outgoing_event_indicator: EventIndicator,
     version: &'static str,
 }
 
 impl App {
-    fn new_from_values(cc: &eframe::CreationContext<'_>, state: AppState, tabs: Tabs) -> Self {
+    fn new_from_values(
+        cc: &eframe::CreationContext<'_>,
+        incoming_event_indicator: EventIndicator,
+        outgoing_event_indicator: EventIndicator,
+        state: AppState,
+        tabs: Tabs,
+    ) -> Self {
         egui_material_icons::initialize(&cc.egui_ctx);
 
         Self {
             tabs,
             state,
+            incoming_event_indicator,
+            outgoing_event_indicator,
             version: env!("CARGO_PKG_VERSION"),
         }
     }
 
     fn new_default(
         cc: &eframe::CreationContext<'_>,
+        incoming_event_indicator: EventIndicator,
+        outgoing_event_indicator: EventIndicator,
         state: AppState,
         actions: ActionsChannel,
     ) -> Self {
         let tabs = Tabs::new_default(state.holder(), actions);
 
-        Self::new_from_values(cc, state, tabs)
+        Self::new_from_values(
+            cc,
+            incoming_event_indicator,
+            outgoing_event_indicator,
+            state,
+            tabs,
+        )
     }
 
     fn from_serde(
         cc: &eframe::CreationContext<'_>,
+        incoming_event_indicator: EventIndicator,
+        outgoing_event_indicator: EventIndicator,
         state: AppState,
         actions: ActionsChannel,
         serde_app: SerdeApp,
     ) -> Self {
         let tabs = Tabs::from_serde(state.holder(), actions, serde_app.tabs);
 
-        Self::new_from_values(cc, state, tabs)
+        Self::new_from_values(
+            cc,
+            incoming_event_indicator,
+            outgoing_event_indicator,
+            state,
+            tabs,
+        )
     }
 
     fn to_serde(&self) -> SerdeApp {
@@ -60,19 +88,47 @@ impl App {
 
     fn load_or_default(
         cc: &eframe::CreationContext<'_>,
+        incoming_event_indicator: EventIndicator,
+        outgoing_event_indicator: EventIndicator,
         state: AppState,
         actions: ActionsChannel,
     ) -> Self {
-        cc.storage
+        match cc
+            .storage
             .and_then(|storage| eframe::get_value::<SerdeApp>(storage, eframe::APP_KEY))
-            .map(|serde_app| Self::from_serde(cc, state.clone(), actions.clone(), serde_app))
-            .unwrap_or(Self::new_default(cc, state, actions))
+        {
+            Some(serde_app) => Self::from_serde(
+                cc,
+                incoming_event_indicator,
+                outgoing_event_indicator,
+                state,
+                actions,
+                serde_app,
+            ),
+            None => Self::new_default(
+                cc,
+                incoming_event_indicator,
+                outgoing_event_indicator,
+                state,
+                actions,
+            ),
+        }
     }
 
     #[cfg(not(target_arch = "wasm32"))]
     pub fn creator() -> AppCreator<'static> {
         Box::new(|cc| {
-            let state = AppState::new(cc.egui_ctx.clone());
+            let (incoming_event_indicator, incoming_event_blinker_handle) =
+                EventIndicator::incoming(Duration::from_secs_f32(0.5), cc.egui_ctx.clone());
+
+            let (outgoing_event_indicator, outgoing_event_blinker_handle) =
+                EventIndicator::outgoing(Duration::from_secs_f32(0.5), cc.egui_ctx.clone());
+
+            let state = AppState::new(
+                cc.egui_ctx.clone(),
+                incoming_event_blinker_handle,
+                outgoing_event_blinker_handle,
+            );
 
             let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Action>();
             let actions = ActionsChannel::new(tx);
@@ -88,7 +144,13 @@ impl App {
                 runtime.block_on(background_app.run(rx));
             });
 
-            Ok(Box::new(App::load_or_default(cc, state, actions)))
+            Ok(Box::new(App::load_or_default(
+                cc,
+                incoming_event_indicator,
+                outgoing_event_indicator,
+                state,
+                actions,
+            )))
         })
     }
 
@@ -120,11 +182,15 @@ impl eframe::App for App {
                 egui::Frame::new()
                     .inner_margin(egui::Margin::same(2))
                     .show(ui, |ui| {
-                        ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
-                            ui.label(self.version);
-                            ui.add_space(ui.available_width() - BindIndicator::size().x * 3.0);
+                        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                             egui::widgets::global_theme_preference_switch(ui);
                             ui.add(BindIndicator::new(bound));
+                            self.incoming_event_indicator.ui(ui);
+                            self.outgoing_event_indicator.ui(ui);
+
+                            ui.add_space(ui.available_width() - self.version.len() as f32 * 5.0);
+
+                            ui.label(self.version);
                         });
                     });
             });

@@ -44,15 +44,30 @@ impl BackgroundApp {
         self.state.push_event(event);
     }
 
+    fn incoming_event_blink(&self) {
+        self.state.incoming_event_blink();
+    }
+
+    fn outgoing_event_blink(&self) {
+        self.state.outgoing_event_blink();
+    }
+
     async fn handle_events(&self, mut events: impl Stream<Item = InsightEvent> + Unpin) {
         while let Some(event) = events.next().await {
             match event {
                 InsightEvent::Incoming(command) => {
                     // TODO: respond to DeliverSm
+                    self.incoming_event_blink();
                     self.push_event(Event::Received(command))
                 }
                 InsightEvent::Insight(insight) => {
                     if let Some(event) = insight.into_event() {
+                        match event {
+                            Event::Received(_) => self.incoming_event_blink(),
+                            Event::Sent(_) => self.outgoing_event_blink(),
+                            _ => {}
+                        }
+
                         self.push_event(event)
                     }
                 }
@@ -168,6 +183,7 @@ impl BackgroundApp {
                 match client
                     .send_mapped(pdu)
                     .and_then(|(command, response)| {
+                        self.outgoing_event_blink();
                         self.push_event(Event::Sent(command));
                         self.request_repaint();
 
@@ -179,6 +195,7 @@ impl BackgroundApp {
                         self.push_event(Event::Error(AppActionError::Bind(err)));
                     }
                     Ok(response) => {
+                        self.incoming_event_blink();
                         self.push_event(Event::Received(response));
                         self.push_event(Event::Bound);
                         self.set_client(client);
@@ -206,6 +223,7 @@ impl BackgroundApp {
         _ = client
             .send_mapped(Pdu::Unbind)
             .and_then(|(command, response)| {
+                self.outgoing_event_blink();
                 self.push_event(Event::Sent(command));
                 self.request_repaint();
 
@@ -213,6 +231,7 @@ impl BackgroundApp {
             })
             .await
             .map(|response| {
+                self.incoming_event_blink();
                 self.push_event(Event::Received(response));
             })
             .map_err(|err| self.push_event(Event::Error(AppActionError::Unbind(err))));
@@ -242,6 +261,7 @@ impl BackgroundApp {
             _ = client
                 .send_mapped(sm)
                 .and_then(|(command, response)| {
+                    self.outgoing_event_blink();
                     self.push_event(Event::Sent(command));
                     self.request_repaint();
 
@@ -249,6 +269,7 @@ impl BackgroundApp {
                 })
                 .await
                 .map(|response| {
+                    self.incoming_event_blink();
                     self.push_event(Event::Received(response));
                 })
                 .map_err(|err| {

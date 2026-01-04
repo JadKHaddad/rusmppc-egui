@@ -4,7 +4,7 @@ use eframe::egui::Context;
 use parking_lot::RwLock;
 use rusmppc::Client;
 
-use crate::values::Event;
+use crate::{values::Event, widgets::BlinkerHandle};
 
 #[derive(Clone)]
 pub struct AppState {
@@ -26,9 +26,17 @@ impl EventsHolder {
 }
 
 impl AppState {
-    pub fn new(ctx: Context) -> Self {
+    pub fn new(
+        ctx: Context,
+        incoming_event_blinker_handle: BlinkerHandle,
+        outgoing_event_blinker_handle: BlinkerHandle,
+    ) -> Self {
         Self {
-            inner: Arc::new(AppStateInner::new(ctx)),
+            inner: Arc::new(AppStateInner::new(
+                ctx,
+                incoming_event_blinker_handle,
+                outgoing_event_blinker_handle,
+            )),
         }
     }
 
@@ -51,14 +59,22 @@ pub struct AppStateInner {
     ctx: Context,
     client: Arc<RwLock<Option<Client>>>,
     events: RwLock<Vec<Event>>,
+    incoming_event_blinker_handle: BlinkerHandle,
+    outgoing_event_blinker_handle: BlinkerHandle,
 }
 
 impl AppStateInner {
-    pub fn new(ctx: Context) -> Self {
+    pub fn new(
+        ctx: Context,
+        incoming_event_blinker_handle: BlinkerHandle,
+        outgoing_event_blinker_handle: BlinkerHandle,
+    ) -> Self {
         Self {
             ctx,
             client: Arc::new(RwLock::new(None)),
             events: RwLock::new(Vec::new()),
+            incoming_event_blinker_handle,
+            outgoing_event_blinker_handle,
         }
     }
 
@@ -95,5 +111,13 @@ impl AppStateInner {
 
     pub fn client(&self) -> impl Deref<Target = Option<Client>> + '_ {
         self.client.read()
+    }
+
+    pub fn incoming_event_blink(&self) {
+        self.incoming_event_blinker_handle.blink();
+    }
+
+    pub fn outgoing_event_blink(&self) {
+        self.outgoing_event_blinker_handle.blink();
     }
 }
