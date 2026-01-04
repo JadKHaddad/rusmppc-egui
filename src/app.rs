@@ -157,7 +157,17 @@ impl App {
     #[cfg(target_arch = "wasm32")]
     pub fn creator() -> AppCreator<'static> {
         Box::new(|cc| {
-            let state = AppState::new(cc.egui_ctx.clone());
+            let (incoming_event_indicator, incoming_event_blinker_handle) =
+                EventIndicator::incoming(Duration::from_secs_f32(0.5), cc.egui_ctx.clone());
+
+            let (outgoing_event_indicator, outgoing_event_blinker_handle) =
+                EventIndicator::outgoing(Duration::from_secs_f32(0.5), cc.egui_ctx.clone());
+
+            let state = AppState::new(
+                cc.egui_ctx.clone(),
+                incoming_event_blinker_handle,
+                outgoing_event_blinker_handle,
+            );
 
             let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Action>();
             let actions = ActionsChannel::new(tx);
@@ -166,7 +176,13 @@ impl App {
 
             wasm_bindgen_futures::spawn_local(background_app.run(rx));
 
-            Ok(Box::new(App::load_or_default(cc, state, actions)))
+            Ok(Box::new(App::load_or_default(
+                cc,
+                incoming_event_indicator,
+                outgoing_event_indicator,
+                state,
+                actions,
+            )))
         })
     }
 }
