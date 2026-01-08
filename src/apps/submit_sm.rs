@@ -651,13 +651,22 @@ impl SubmitSmApp {
 
                     ui.label("GSM Features");
                     ui.add_enabled_ui(!self.udhi_indicator_must_be_set(), |ui| {
-                        ui.add(ComboBox::new(
-                            "submit_sm_esm_class_gsm_features",
-                            &mut self.esm_class.gsm_features,
-                            GsmFeatures::VARIANTS,
-                        ))
-                        .changed()
-                        .then(|| self.save_last_gsm_features());
+                        egui::ComboBox::from_id_salt("submit_sm_esm_class_gsm_features")
+                            .width(100.0)
+                            .selected_text(<&'static str>::from(self.esm_class.gsm_features))
+                            .show_ui(ui, |ui| {
+                                for item in GsmFeatures::VARIANTS {
+                                    ui.selectable_value(
+                                        &mut self.esm_class.gsm_features,
+                                        *item,
+                                        <&'static str>::from(*item),
+                                    )
+                                    .changed()
+                                    .then(|| {
+                                        self.save_last_gsm_features();
+                                    });
+                                }
+                            });
                     });
 
                     ui.end_row();
