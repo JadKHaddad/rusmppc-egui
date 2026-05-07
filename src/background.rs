@@ -5,11 +5,11 @@ use rusmpp::{
     Pdu,
     pdus::{BindReceiver, BindTransceiver, BindTransmitter},
 };
-use rusmppc::{Client, InsightConnectionBuilder, InsightEvent};
+use rusmppc::event::InsightEvent;
 
 use crate::{
     actions::{Action, BindAction, SubmitSmsAction, UnbindAction},
-    client::ClientExt,
+    client::{Client, ClientExt},
     insight::InsightExt,
     result::AppActionError,
     runtime,
@@ -84,21 +84,17 @@ impl BackgroundApp {
         self.request_repaint();
     }
 
-    fn builder(&self, interval: u64) -> InsightConnectionBuilder {
-        Client::builder()
-            .enquire_link_interval(Duration::from_secs(interval))
-            .disable_interface_version_check()
-            .events()
-            .insights()
-    }
-
     #[cfg(not(target_arch = "wasm32"))]
     async fn connect(
         &self,
         url: SmppUrl,
         interval: u64,
     ) -> Result<(Client, impl Stream<Item = InsightEvent> + 'static), AppActionError> {
-        self.builder(interval)
+        Client::builder()
+            .enquire_link_interval(Duration::from_secs(interval))
+            .disable_interface_version_check()
+            .events()
+            .insights()
             .connect(url.to_string())
             .await
             .map_err(|err| AppActionError::Connection(err.into()))
@@ -154,7 +150,12 @@ impl BackgroundApp {
                 ))),
             })??;
 
-        let client = self.builder(interval).connected(ws.compat());
+        let client = Client::builder_wasm()
+            .enquire_link_interval(Duration::from_secs(interval))
+            .disable_interface_version_check()
+            .events()
+            .insights()
+            .connected(ws.compat());
 
         Ok(client)
     }

@@ -1,5 +1,5 @@
 use rusmpp::{Command, CommandStatus, Pdu};
-use rusmppc::Insight;
+use rusmppc::event::Insight;
 
 use crate::values::Event;
 

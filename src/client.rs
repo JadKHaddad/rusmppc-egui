@@ -1,6 +1,12 @@
 use futures::TryFutureExt;
 use rusmpp::{Command, CommandStatus, Pdu};
-use rusmppc::{Client, error::Error};
+use rusmppc::{Client as RusmppClient, error::Error};
+
+#[cfg(target_arch = "wasm32")]
+pub type Client = RusmppClient<rusmppc::runtime::Wasm>;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub type Client = RusmppClient<rusmppc::runtime::Tokio>;
 
 pub trait ClientExt {
     fn send_mapped(

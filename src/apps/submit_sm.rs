@@ -475,7 +475,7 @@ impl SubmitSmApp {
     }
 
     fn set_udhi_indicator(&mut self) {
-        self.esm_class.gsm_features = GsmFeatures::UdhiIndicator;
+        self.esm_class.gsm_features = GsmFeatures::UdhIndicator;
     }
 
     fn reset_udhi_indicator(&mut self) {

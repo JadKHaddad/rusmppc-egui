@@ -2,9 +2,8 @@ use std::{ops::Deref, sync::Arc};
 
 use eframe::egui::Context;
 use parking_lot::RwLock;
-use rusmppc::Client;
 
-use crate::{values::Event, widgets::BlinkerHandle};
+use crate::{client::Client, values::Event, widgets::BlinkerHandle};
 
 #[derive(Clone)]
 pub struct AppState {

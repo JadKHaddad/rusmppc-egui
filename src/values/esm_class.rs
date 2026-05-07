@@ -121,7 +121,7 @@ impl From<Ansi41Specific> for RusmppAnsi41Specific {
 pub enum GsmFeatures {
     #[default]
     NotSelected,
-    UdhiIndicator,
+    UdhIndicator,
     SetReplyPath,
     SetUdhiAndReplyPath,
 }
@@ -130,7 +130,7 @@ impl From<GsmFeatures> for RusmppGsmFeatures {
     fn from(value: GsmFeatures) -> Self {
         match value {
             GsmFeatures::NotSelected => RusmppGsmFeatures::NotSelected,
-            GsmFeatures::UdhiIndicator => RusmppGsmFeatures::UdhiIndicator,
+            GsmFeatures::UdhIndicator => RusmppGsmFeatures::UdhIndicator,
             GsmFeatures::SetReplyPath => RusmppGsmFeatures::SetReplyPath,
             GsmFeatures::SetUdhiAndReplyPath => RusmppGsmFeatures::SetUdhiAndReplyPath,
         }
