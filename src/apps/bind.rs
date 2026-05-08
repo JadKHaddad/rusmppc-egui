@@ -19,12 +19,13 @@ use crate::{
     actions::ActionsChannel,
     colors::{FUSION_RED, HIGH_BLUE},
     result::{AppResult, AppUiError},
-    types::SmppUrl,
+    types::{SmppUrl, WsUrl},
     values::{BindMode, InterfaceVersion, Npi, Ton},
     widgets::ComboBox,
 };
 
 struct RusmppFields {
+    ws_proxy_url: AppResult<WsUrl>,
     url: AppResult<SmppUrl>,
     system_id: AppResult<COctetString<1, 16>>,
     password: AppResult<COctetString<1, 9>>,
@@ -34,6 +35,7 @@ struct RusmppFields {
 
 impl RusmppFields {
     fn new(
+        ws_proxy_url: &str,
         url: &str,
         system_id: &str,
         password: &str,
@@ -41,7 +43,8 @@ impl RusmppFields {
         enquire_link_interval_secs: &str,
     ) -> Self {
         Self {
-            url: SmppUrl::new(url).map_err(AppUiError::Url),
+            ws_proxy_url: WsUrl::new(ws_proxy_url).map_err(AppUiError::WsUrl),
+            url: SmppUrl::new(url).map_err(AppUiError::SmppUrl),
             system_id: COctetString::from_str(system_id)
                 .map_err(|_| AppUiError::invalid_system_id()),
             password: COctetString::from_str(password).map_err(|_| AppUiError::invalid_password()),
@@ -53,8 +56,12 @@ impl RusmppFields {
         }
     }
 
+    fn set_ws_proxy_url(&mut self, ws_proxy_url: &str) {
+        self.ws_proxy_url = WsUrl::new(ws_proxy_url).map_err(AppUiError::WsUrl);
+    }
+
     fn set_url(&mut self, url: &str) {
-        self.url = SmppUrl::new(url).map_err(AppUiError::Url);
+        self.url = SmppUrl::new(url).map_err(AppUiError::SmppUrl);
     }
 
     fn set_system_id(&mut self, system_id: &str) {
@@ -78,6 +85,22 @@ impl RusmppFields {
             .map_err(|_| AppUiError::invalid_enquire_link_interval());
     }
 
+    #[cfg(target_arch = "wasm32")]
+    fn all_fields_valid(&self) -> bool {
+        matches!(
+            (
+                &self.ws_proxy_url,
+                &self.url,
+                &self.system_id,
+                &self.password,
+                &self.system_type,
+                &self.enquire_link_interval_secs,
+            ),
+            (Ok(_), Ok(_), Ok(_), Ok(_), Ok(_), Ok(_))
+        )
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     fn all_fields_valid(&self) -> bool {
         matches!(
             (
@@ -94,6 +117,7 @@ impl RusmppFields {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SerdeBindApp {
+    ws_proxy_url: String,
     url: String,
     system_id: String,
     system_type: String,
@@ -106,6 +130,7 @@ pub struct SerdeBindApp {
 
 pub struct BindApp {
     actions: ActionsChannel,
+    ws_proxy_url: String,
     url: String,
     system_id: String,
     password: String,
@@ -125,6 +150,7 @@ impl BindApp {
     #[allow(clippy::too_many_arguments)]
     pub fn new_from_values(
         actions: ActionsChannel,
+        ws_proxy_url: String,
         url: String,
         system_id: String,
         password: String,
@@ -136,6 +162,7 @@ impl BindApp {
         enquire_link_interval_secs: String,
     ) -> Self {
         let fields = RusmppFields::new(
+            &ws_proxy_url,
             &url,
             &system_id,
             &password,
@@ -145,6 +172,7 @@ impl BindApp {
 
         Self {
             actions,
+            ws_proxy_url,
             url,
             system_id,
             password,
@@ -162,6 +190,9 @@ impl BindApp {
     }
 
     pub fn new_default(actions: ActionsChannel) -> Self {
+        // XXX: we keep the ws_proxy_url in non-wasm builds but we do not show it in the UI and we do not validate it.
+        // Removing it entirely would require a lot of conditional compilation which is ugly af.
+        let ws_proxy_url = String::from("wss://proxy.rusmpp.org:7776/ws");
         let url = String::from("smpps://rusmpps.rusmpp.org:2776");
         let system_id = String::from("system_id");
         let password = String::new();
@@ -174,6 +205,7 @@ impl BindApp {
 
         Self::new_from_values(
             actions,
+            ws_proxy_url,
             url,
             system_id,
             password,
@@ -189,6 +221,7 @@ impl BindApp {
     pub fn from_serde(actions: ActionsChannel, serde_bind_app: SerdeBindApp) -> Self {
         Self::new_from_values(
             actions,
+            serde_bind_app.ws_proxy_url,
             serde_bind_app.url,
             serde_bind_app.system_id,
             String::new(),
@@ -203,6 +236,7 @@ impl BindApp {
 
     pub fn to_serde(&self) -> SerdeBindApp {
         SerdeBindApp {
+            ws_proxy_url: self.ws_proxy_url.clone(),
             url: self.url.clone(),
             system_id: self.system_id.clone(),
             system_type: self.system_type.clone(),
@@ -227,12 +261,18 @@ impl BindApp {
         Ok(bind_pdu)
     }
 
-    fn get_url_and_interval_and_and_pdu(&self) -> AppResult<(SmppUrl, u64, BindAny)> {
-        let url = self.fields.url.clone()?;
+    fn get_url_and_interval_and_and_pdu(&self) -> AppResult<(WsUrl, SmppUrl, u64, BindAny)> {
+        let ws_url = self.fields.ws_proxy_url.clone()?;
+        let smpp_url = self.fields.url.clone()?;
         let interval = self.fields.enquire_link_interval_secs.clone()?;
         let bind_pdu = self.create_bind_pdu()?;
 
-        Ok((url, interval, bind_pdu))
+        Ok((ws_url, smpp_url, interval, bind_pdu))
+    }
+
+    #[allow(dead_code)]
+    fn update_ws_proxy_url(&mut self) {
+        self.fields.set_ws_proxy_url(&self.ws_proxy_url);
     }
 
     fn update_url(&mut self) {
@@ -288,9 +328,17 @@ impl BindApp {
     fn on_bind_button_clicked(&mut self) {
         if self.bound {
             self.actions.unbind(self.loading.clone());
-        } else if let Ok((url, interval, bind)) = self.get_url_and_interval_and_and_pdu() {
-            self.actions
-                .bind(self.mode, url, interval, bind, self.loading.clone());
+        } else if let Ok((ws_proxy_url, smpp_url, interval, bind)) =
+            self.get_url_and_interval_and_and_pdu()
+        {
+            self.actions.bind(
+                self.mode,
+                ws_proxy_url,
+                smpp_url,
+                interval,
+                bind,
+                self.loading.clone(),
+            );
         }
     }
 
@@ -310,6 +358,21 @@ impl BindApp {
                     .spacing([12.0, 10.0])
                     .striped(false)
                     .show(ui, |ui| {
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            ui.label("WS Proxy URL");
+                            ui.add(egui::TextEdit::singleline(&mut self.ws_proxy_url))
+                                .changed()
+                                .then(|| {
+                                    self.update_ws_proxy_url();
+                                });
+                            ui.end_row();
+
+                            if let Err(err) = &self.fields.ws_proxy_url {
+                                display_err(ui, err);
+                            }
+                        }
+
                         ui.label("URL");
                         ui.add(egui::TextEdit::singleline(&mut self.url))
                             .changed()

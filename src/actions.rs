@@ -2,7 +2,10 @@ use std::sync::{Arc, atomic::AtomicBool};
 
 use rusmpp::pdus::{BindAny, SubmitSm};
 
-use crate::{types::SmppUrl, values::BindMode};
+use crate::{
+    types::{SmppUrl, WsUrl},
+    values::BindMode,
+};
 
 #[derive(Clone)]
 pub struct ActionsChannel {
@@ -21,6 +24,7 @@ impl ActionsChannel {
     pub fn bind(
         &self,
         mode: BindMode,
+        ws_proxy_url: WsUrl,
         url: SmppUrl,
         interval: u64,
         bind: BindAny,
@@ -29,6 +33,7 @@ impl ActionsChannel {
         let action = Action::Bind(BindAction {
             mode,
             interval,
+            ws_proxy_url,
             url,
             bind,
             loading,
@@ -57,6 +62,7 @@ pub enum Action {
 #[derive(Debug, Clone)]
 pub struct BindAction {
     pub mode: BindMode,
+    pub ws_proxy_url: WsUrl,
     pub url: SmppUrl,
     pub interval: u64,
     pub bind: BindAny,

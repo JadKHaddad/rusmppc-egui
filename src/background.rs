@@ -7,6 +7,8 @@ use rusmpp::{
 };
 use rusmppc::event::InsightEvent;
 
+use crate::types::WsUrl;
+
 use crate::{
     actions::{Action, BindAction, SubmitSmsAction, UnbindAction},
     client::{Client, ClientExt},
@@ -88,6 +90,7 @@ impl BackgroundApp {
     async fn connect(
         &self,
         url: SmppUrl,
+        _ws_proxy_url: WsUrl,
         interval: u64,
     ) -> Result<(Client, impl Stream<Item = InsightEvent> + 'static), AppActionError> {
         Client::builder()
@@ -104,6 +107,7 @@ impl BackgroundApp {
     async fn connect(
         &self,
         url: SmppUrl,
+        ws_proxy_url: WsUrl,
         interval: u64,
     ) -> Result<(Client, impl Stream<Item = InsightEvent> + 'static), AppActionError> {
         use gloo_net::websocket::{Message, futures::WebSocket};
@@ -117,8 +121,8 @@ impl BackgroundApp {
         let url = url.into_wasm();
 
         let mut ws = WebSocket::open(&format!(
-            "wss://proxy.rusmpp.org:7776/ws?ssl={}&domain={}&port={}",
-            url.ssl, url.domain, url.port
+            "{}?ssl={}&domain={}&port={}",
+            ws_proxy_url.url, url.ssl, url.domain, url.port
         ))
         .map_err(|err| AppActionError::Connection(err.into()))?;
 
@@ -167,7 +171,10 @@ impl BackgroundApp {
 
         action.loading.store(true, Ordering::Relaxed);
 
-        match self.connect(action.url, action.interval).await {
+        match self
+            .connect(action.url, action.ws_proxy_url, action.interval)
+            .await
+        {
             Err(err) => {
                 self.push_event(Event::Error(err));
             }

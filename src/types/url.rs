@@ -1,6 +1,27 @@
 use url::Url;
 
-use crate::result::SmppUrlError;
+use crate::result::{SmppUrlError, WsUrlError};
+
+#[derive(Debug, Clone)]
+pub struct WsUrl {
+    pub url: Url,
+}
+
+impl WsUrl {
+    pub fn new(url: &str) -> Result<Self, WsUrlError> {
+        let url = Url::parse(url).map_err(|_| WsUrlError::Parse)?;
+
+        if url.scheme() != "ws" && url.scheme() != "wss" {
+            return Err(WsUrlError::Schema);
+        }
+
+        if url.host_str().is_none() {
+            return Err(WsUrlError::Host);
+        }
+
+        Ok(Self { url })
+    }
+}
 
 #[cfg(target_arch = "wasm32")]
 #[derive(Debug, Clone)]

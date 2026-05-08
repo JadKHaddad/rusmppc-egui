@@ -15,7 +15,8 @@ pub enum AppActionError {
 
 #[derive(Debug, Clone)]
 pub enum AppUiError {
-    Url(SmppUrlError),
+    WsUrl(WsUrlError),
+    SmppUrl(SmppUrlError),
     Field(SmppFieldError),
     MultiPart(MultiPartError),
 }
@@ -23,8 +24,9 @@ pub enum AppUiError {
 impl AppUiError {
     pub fn display_message(&self) -> Cow<'static, str> {
         match self {
+            AppUiError::WsUrl(err) => err.display_message(),
             AppUiError::Field(err) => err.display_message(),
-            AppUiError::Url(err) => err.display_message(),
+            AppUiError::SmppUrl(err) => err.display_message(),
             AppUiError::MultiPart(err) => err.display_message(),
         }
     }
@@ -117,6 +119,26 @@ impl SmppFieldError {
             SmppFieldError::EnquireLinkInterval => {
                 "Enquire Link Interval must be a valid positive integer.".into()
             }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum WsUrlError {
+    /// URL Parse Error
+    Parse,
+    /// Invalid URL Schema
+    Schema,
+    /// URL Host Missing
+    Host,
+}
+
+impl WsUrlError {
+    pub fn display_message(&self) -> Cow<'static, str> {
+        match self {
+            WsUrlError::Parse => "Invalid URL".into(),
+            WsUrlError::Schema => "URL schema must be ws or wss".into(),
+            WsUrlError::Host => "URL host is missing".into(),
         }
     }
 }
