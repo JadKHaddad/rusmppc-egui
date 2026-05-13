@@ -5,6 +5,7 @@ mod interface_version;
 mod mode;
 mod npi;
 mod priority_flag;
+mod registered_delivery;
 mod ton;
 
 pub use data_coding::DataCoding;
@@ -16,5 +17,8 @@ pub use npi::Npi;
 pub use priority_flag::{
     Ansi41CbsPriorityFlag, Ansi136PriorityFlag, GsmCbsPriorityFlag, GsmSmsPriorityFlag,
     Is95PriorityFlag,
+};
+pub use registered_delivery::{
+    IntermediateNotification, MCDeliveryReceipt, RegisteredDelivery, SmeOriginatedAcknowledgement,
 };
 pub use ton::Ton;

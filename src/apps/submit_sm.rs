@@ -20,8 +20,9 @@ use crate::{
     result::{AppResult, AppUiError, MultiPartError},
     values::{
         Ansi41CbsPriorityFlag, Ansi41Specific, Ansi136PriorityFlag, DataCoding, EsmClass,
-        GsmCbsPriorityFlag, GsmFeatures, GsmSmsPriorityFlag, Is95PriorityFlag, MessageType,
-        MessagingMode, Npi, Ton,
+        GsmCbsPriorityFlag, GsmFeatures, GsmSmsPriorityFlag, IntermediateNotification,
+        Is95PriorityFlag, MCDeliveryReceipt, MessageType, MessagingMode, Npi, RegisteredDelivery,
+        SmeOriginatedAcknowledgement, Ton,
     },
     widgets::ComboBox,
 };
@@ -194,6 +195,9 @@ pub struct SerdeSubmitSmApp {
     protocol_id: String,
     sm_default_msg_id: String,
     priority_flag: String,
+    mc_delivery_receipt: MCDeliveryReceipt,
+    sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
+    intermediate_notification: IntermediateNotification,
 }
 
 pub struct SubmitSmApp {
@@ -211,6 +215,9 @@ pub struct SubmitSmApp {
     last_gsm_features: GsmFeatures,
     protocol_id: String,
     sm_default_msg_id: String,
+    mc_delivery_receipt: MCDeliveryReceipt,
+    sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
+    intermediate_notification: IntermediateNotification,
     priority_flag: String,
     reference: u8,
     fields: RusmppFields,
@@ -235,6 +242,9 @@ impl SubmitSmApp {
         protocol_id: String,
         sm_default_msg_id: String,
         priority_flag: String,
+        mc_delivery_receipt: MCDeliveryReceipt,
+        sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
+        intermediate_notification: IntermediateNotification,
     ) -> Self {
         let fields = RusmppFields::new(
             &service_type,
@@ -261,6 +271,9 @@ impl SubmitSmApp {
             protocol_id,
             sm_default_msg_id,
             priority_flag,
+            mc_delivery_receipt,
+            sme_originated_acknowledgement,
+            intermediate_notification,
             reference: 0,
             fields,
             bound: false,
@@ -286,6 +299,9 @@ impl SubmitSmApp {
         let protocol_id = String::from("0");
         let sm_default_msg_id = String::from("0");
         let priority_flag = String::from("0");
+        let mc_delivery_receipt = MCDeliveryReceipt::default();
+        let sme_originated_acknowledgement = SmeOriginatedAcknowledgement::default();
+        let intermediate_notification = IntermediateNotification::default();
 
         Self::new_from_values(
             actions,
@@ -303,6 +319,9 @@ impl SubmitSmApp {
             protocol_id,
             sm_default_msg_id,
             priority_flag,
+            mc_delivery_receipt,
+            sme_originated_acknowledgement,
+            intermediate_notification,
         )
     }
 
@@ -323,6 +342,9 @@ impl SubmitSmApp {
             serde_app.protocol_id,
             serde_app.sm_default_msg_id,
             serde_app.priority_flag,
+            serde_app.mc_delivery_receipt,
+            serde_app.sme_originated_acknowledgement,
+            serde_app.intermediate_notification,
         )
     }
 
@@ -342,6 +364,9 @@ impl SubmitSmApp {
             protocol_id: self.protocol_id.clone(),
             sm_default_msg_id: self.sm_default_msg_id.clone(),
             priority_flag: self.priority_flag.clone(),
+            mc_delivery_receipt: self.mc_delivery_receipt,
+            sme_originated_acknowledgement: self.sme_originated_acknowledgement,
+            intermediate_notification: self.intermediate_notification,
         }
     }
 
@@ -420,6 +445,14 @@ impl SubmitSmApp {
             .destination_addr(self.fields.destination_addr.clone()?)
             .esm_class(self.esm_class.into())
             .protocol_id(self.fields.protocol_id.clone()?)
+            .registered_delivery(
+                RegisteredDelivery::new(
+                    self.mc_delivery_receipt,
+                    self.sme_originated_acknowledgement,
+                    self.intermediate_notification,
+                )
+                .into(),
+            )
             .sm_default_msg_id(self.fields.sm_default_msg_id.clone()?)
             .build();
 
@@ -570,19 +603,20 @@ impl SubmitSmApp {
                 .spacing([16.0, 10.0])
                 .striped(false)
                 .show(ui, |ui| {
-                    // TON
                     ui.label("Source Address TON");
                     ui.add(ComboBox::new(
                         "submit_sm_source_addr_ton",
                         &mut self.source_addr_ton,
                         Ton::VARIANTS,
                     ));
+
                     ui.label("Source Address NPI");
                     ui.add(ComboBox::new(
                         "submit_sm_source_addr_npi",
                         &mut self.source_addr_npi,
                         Npi::VARIANTS,
                     ));
+
                     ui.label("Source Address");
                     ui.add(egui::TextEdit::singleline(&mut self.source_addr).char_limit(20))
                         .on_hover_text("Max 20 ASCII characters")
@@ -597,12 +631,14 @@ impl SubmitSmApp {
                         &mut self.dest_addr_ton,
                         Ton::VARIANTS,
                     ));
+
                     ui.label("Destination Address NPI");
                     ui.add(ComboBox::new(
                         "submit_sm_dest_addr_npi",
                         &mut self.dest_addr_npi,
                         Npi::VARIANTS,
                     ));
+
                     ui.label("Destination Address");
                     ui.add(egui::TextEdit::singleline(&mut self.destination_addr).char_limit(20))
                         .on_hover_text("Max 20 ASCII characters")
@@ -668,6 +704,48 @@ impl SubmitSmApp {
                                 }
                             });
                     });
+
+                    ui.end_row();
+                });
+
+            ui.add_space(12.0);
+
+            ui.horizontal(|ui| {
+                ui.heading("Registered Delivery");
+                ui.add(Separator::default().horizontal().spacing(8.0));
+            });
+
+            ui.add_space(12.0);
+
+            egui::Grid::new("registered_delivery_grid")
+                .num_columns(2)
+                .spacing([12.0, 10.0])
+                .striped(false)
+                .show(ui, |ui| {
+                    ui.label("MC Delivery Receipt");
+                    ui.add(ComboBox::new(
+                        "submit_sm_mc_delivery_receipt",
+                        &mut self.mc_delivery_receipt,
+                        MCDeliveryReceipt::VARIANTS,
+                    ));
+
+                    ui.end_row();
+
+                    ui.label("Sme Acknowledgement");
+                    ui.add(ComboBox::new(
+                        "submit_sm_sme_originated_acknowledgement",
+                        &mut self.sme_originated_acknowledgement,
+                        SmeOriginatedAcknowledgement::VARIANTS,
+                    ));
+
+                    ui.end_row();
+
+                    ui.label("Intermediate Notification");
+                    ui.add(ComboBox::new(
+                        "submit_sm_intermediate_notification",
+                        &mut self.intermediate_notification,
+                        IntermediateNotification::VARIANTS,
+                    ));
 
                     ui.end_row();
                 });
