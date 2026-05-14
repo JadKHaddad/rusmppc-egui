@@ -24,7 +24,7 @@ use crate::{
         Is95PriorityFlag, MCDeliveryReceipt, MessageType, MessagingMode, Npi, RegisteredDelivery,
         SmeOriginatedAcknowledgement, Ton,
     },
-    widgets::ComboBox,
+    widgets::{ComboBox, DigitsTextBuffer},
 };
 
 mod encoder;
@@ -213,12 +213,12 @@ pub struct SubmitSmApp {
     data_coding: DataCoding,
     esm_class: EsmClass,
     last_gsm_features: GsmFeatures,
-    protocol_id: String,
-    sm_default_msg_id: String,
+    protocol_id: DigitsTextBuffer<String>,
+    sm_default_msg_id: DigitsTextBuffer<String>,
+    priority_flag: DigitsTextBuffer<String>,
     mc_delivery_receipt: MCDeliveryReceipt,
     sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
     intermediate_notification: IntermediateNotification,
-    priority_flag: String,
     reference: u8,
     fields: RusmppFields,
     bound: bool,
@@ -268,9 +268,9 @@ impl SubmitSmApp {
             data_coding,
             esm_class,
             last_gsm_features,
-            protocol_id,
-            sm_default_msg_id,
-            priority_flag,
+            protocol_id: DigitsTextBuffer::new(protocol_id),
+            sm_default_msg_id: DigitsTextBuffer::new(sm_default_msg_id),
+            priority_flag: DigitsTextBuffer::new(priority_flag),
             mc_delivery_receipt,
             sme_originated_acknowledgement,
             intermediate_notification,
@@ -361,9 +361,9 @@ impl SubmitSmApp {
             data_coding: self.data_coding,
             esm_class: self.esm_class,
             last_gsm_features: self.last_gsm_features,
-            protocol_id: self.protocol_id.clone(),
-            sm_default_msg_id: self.sm_default_msg_id.clone(),
-            priority_flag: self.priority_flag.clone(),
+            protocol_id: self.protocol_id.inner().clone(),
+            sm_default_msg_id: self.sm_default_msg_id.inner().clone(),
+            priority_flag: self.priority_flag.inner().clone(),
             mc_delivery_receipt: self.mc_delivery_receipt,
             sme_originated_acknowledgement: self.sme_originated_acknowledgement,
             intermediate_notification: self.intermediate_notification,
@@ -400,21 +400,18 @@ impl SubmitSmApp {
     }
 
     fn update_protocol_id(&mut self) {
-        self.protocol_id.retain(|c| c.is_ascii_digit());
         self.fields.set_protocol_id(&self.protocol_id);
 
         self.update_short_message();
     }
 
     fn update_sm_default_msg_id(&mut self) {
-        self.sm_default_msg_id.retain(|c| c.is_ascii_digit());
         self.fields.set_sm_default_msg_id(&self.sm_default_msg_id);
 
         self.update_short_message();
     }
 
     fn update_priority_flag(&mut self) {
-        self.priority_flag.retain(|c| c.is_ascii_digit());
         self.fields.set_priority_flag(&self.priority_flag);
 
         self.update_short_message();

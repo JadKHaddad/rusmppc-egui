@@ -9,3 +9,6 @@ pub use blinker::BlinkerHandle;
 
 mod event_indicator;
 pub use event_indicator::EventIndicator;
+
+mod digits_text_buffer;
+pub use digits_text_buffer::DigitsTextBuffer;

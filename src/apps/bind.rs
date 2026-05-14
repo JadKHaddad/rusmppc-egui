@@ -21,7 +21,7 @@ use crate::{
     result::{AppResult, AppUiError},
     types::{SmppUrl, WsUrl},
     values::{BindMode, InterfaceVersion, Npi, Ton},
-    widgets::ComboBox,
+    widgets::{ComboBox, DigitsTextBuffer},
 };
 
 struct RusmppFields {
@@ -139,7 +139,7 @@ pub struct BindApp {
     addr_npi: Npi,
     interface_version: InterfaceVersion,
     mode: BindMode,
-    enquire_link_interval_secs: String,
+    enquire_link_interval_secs: DigitsTextBuffer<String>,
     fields: RusmppFields,
     bound: bool,
     password_visible: bool,
@@ -181,7 +181,7 @@ impl BindApp {
             addr_npi,
             interface_version,
             mode,
-            enquire_link_interval_secs,
+            enquire_link_interval_secs: DigitsTextBuffer::new(enquire_link_interval_secs),
             fields,
             bound: false,
             password_visible: false,
@@ -244,7 +244,7 @@ impl BindApp {
             addr_npi: self.addr_npi,
             interface_version: self.interface_version,
             mode: self.mode,
-            enquire_link_interval_secs: self.enquire_link_interval_secs.clone(),
+            enquire_link_interval_secs: self.enquire_link_interval_secs.inner().clone(),
         }
     }
 
@@ -295,8 +295,6 @@ impl BindApp {
     }
 
     fn update_enquire_link_interval_secs(&mut self) {
-        self.enquire_link_interval_secs
-            .retain(|c| c.is_ascii_digit());
         self.fields
             .set_enquire_link_interval_secs(&self.enquire_link_interval_secs);
     }
