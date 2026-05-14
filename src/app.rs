@@ -11,6 +11,9 @@ use crate::{
     widgets::{BindIndicator, EventIndicator},
 };
 
+const RUSMPP_REPO: &str = "https://github.com/Rusmpp/Rusmpp";
+const REPO: &str = "https://github.com/JadKHaddad/rusmppc-egui";
+
 #[derive(Serialize, Deserialize)]
 struct SerdeApp {
     tabs: SerdeTabs,
@@ -204,9 +207,18 @@ impl eframe::App for App {
                             self.incoming_event_indicator.ui(ui);
                             self.outgoing_event_indicator.ui(ui);
 
-                            ui.add_space(ui.available_width() - self.version.len() as f32 * 5.0);
+                            ui.add_space(
+                                ui.available_width()
+                                    - (self.version.len() as f32 + "rusmpp".len() as f32) * 6.8,
+                            );
 
-                            ui.label(self.version);
+                            ui.hyperlink_to("rusmpp", RUSMPP_REPO).on_hover_ui(|ui| {
+                                ui.label(RUSMPP_REPO);
+                            });
+
+                            ui.hyperlink_to(self.version, REPO).on_hover_ui(|ui| {
+                                ui.label(REPO);
+                            });
                         });
                     });
             });
