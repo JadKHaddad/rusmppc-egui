@@ -3496,16 +3496,17 @@ dependencies = [
 [[package]]
 name = "rusmpp"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=f94df79#f94df79208f68801846838f604859f0c6610d7b6"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
 dependencies = [
  "rusmpp-core",
  "rusmpp-extra",
+ "rusmpp-tokio-codec",
 ]
 
 [[package]]
 name = "rusmpp-core"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=f94df79#f94df79208f68801846838f604859f0c6610d7b6"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
 dependencies = [
  "bytes",
  "heapless",
@@ -3513,14 +3514,12 @@ dependencies = [
  "rusmpp-macros",
  "serde",
  "thiserror 2.0.17",
- "tokio-util",
- "tracing",
 ]
 
 [[package]]
 name = "rusmpp-extra"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=f94df79#f94df79208f68801846838f604859f0c6610d7b6"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
 dependencies = [
  "encoding_rs",
  "rusmpp-core",
@@ -3531,7 +3530,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-macros"
 version = "0.2.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=f94df79#f94df79208f68801846838f604859f0c6610d7b6"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3539,9 +3538,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusmpp-tokio-codec"
+version = "0.1.0"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
+dependencies = [
+ "bytes",
+ "rusmpp-core",
+ "tokio-util",
+ "tracing",
+]
+
+[[package]]
 name = "rusmppc"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=f94df79#f94df79208f68801846838f604859f0c6610d7b6"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
 dependencies = [
  "futures",
  "gloo-timers",

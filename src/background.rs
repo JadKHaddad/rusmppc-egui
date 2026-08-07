@@ -2,8 +2,9 @@ use std::{sync::atomic::Ordering, time::Duration};
 
 use futures::{Stream, StreamExt, TryFutureExt};
 use rusmpp::{
-    Pdu,
-    pdus::{BindReceiver, BindTransceiver, BindTransmitter},
+    Command, CommandStatus, Pdu,
+    pdus::{BindReceiver, BindTransceiver, BindTransmitter, DeliverSmResp},
+    types::COctetString,
 };
 use rusmppc::event::InsightEvent;
 
@@ -58,9 +59,28 @@ impl BackgroundApp {
         while let Some(event) = events.next().await {
             match event {
                 InsightEvent::Incoming(command) => {
-                    // TODO: respond to DeliverSm
+                    let deliver_sm_resp = match command.pdu() {
+                        Some(Pdu::DeliverSm(deliver_sm)) => {
+                            let deliver_sm_resp = DeliverSmResp::builder()
+                                .message_id(
+                                    deliver_sm
+                                        .receipted_message_id()
+                                        .cloned()
+                                        .unwrap_or(COctetString::empty()),
+                                )
+                                .build();
+
+                            Some((command.sequence_number(), deliver_sm_resp))
+                        }
+                        _ => None,
+                    };
+
                     self.incoming_event_blink();
-                    self.push_event(Event::Received(command))
+                    self.push_event(Event::Received(command));
+
+                    if let Some((sequence_number, deliver_sm_resp)) = deliver_sm_resp {
+                        self.deliver_sm_resp(sequence_number, deliver_sm_resp).await;
+                    }
                 }
                 InsightEvent::Insight(insight) => {
                     if let Some(event) = insight.into_event() {
@@ -257,6 +277,32 @@ impl BackgroundApp {
         action.loading.store(false, Ordering::Relaxed);
 
         self.clear_client();
+        self.request_repaint();
+    }
+
+    async fn deliver_sm_resp(&self, sequence_number: u32, deliver_sm_resp: DeliverSmResp) {
+        let Some(client) = self.state.client().as_ref().map(|client| client.clone()) else {
+            return;
+        };
+
+        _ = client
+            .deliver_sm_resp(sequence_number, deliver_sm_resp.clone())
+            .await
+            .map(|_| {
+                Command::builder()
+                    .status(CommandStatus::EsmeRok)
+                    .sequence_number(sequence_number)
+                    .pdu(deliver_sm_resp)
+            })
+            .map(|command| {
+                self.outgoing_event_blink();
+                self.push_event(Event::Sent(command));
+                self.request_repaint();
+            })
+            .map_err(|err| {
+                self.push_event(Event::Error(AppActionError::SubmitSm(err)));
+            });
+
         self.request_repaint();
     }
 
