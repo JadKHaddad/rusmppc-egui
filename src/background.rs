@@ -8,16 +8,15 @@ use rusmpp::{
 };
 use rusmppc::event::InsightEvent;
 
-use crate::types::WsUrl;
-
 use crate::{
-    actions::{Action, BindAction, SubmitSmsAction, UnbindAction},
+    actions::{Action, BindAction, QuerySmAction, SubmitSmsAction, UnbindAction},
     client::{Client, ClientExt},
     insight::InsightExt,
     result::AppActionError,
     runtime,
     state::AppState,
     types::SmppUrl,
+    types::WsUrl,
     values::{BindMode, Event},
 };
 
@@ -300,7 +299,7 @@ impl BackgroundApp {
                 self.request_repaint();
             })
             .map_err(|err| {
-                self.push_event(Event::Error(AppActionError::SubmitSm(err)));
+                self.push_event(Event::Error(AppActionError::DeliverSmResp(err)));
             });
 
         self.request_repaint();
@@ -334,12 +333,39 @@ impl BackgroundApp {
         }
     }
 
+    async fn query_sm(&self, action: QuerySmAction) {
+        let Some(client) = self.state.client().as_ref().map(|client| client.clone()) else {
+            return;
+        };
+
+        _ = client
+            .send_mapped(action.query_sm)
+            .and_then(|(command, response)| {
+                self.outgoing_event_blink();
+                self.push_event(Event::Sent(command));
+                self.request_repaint();
+
+                response
+            })
+            .await
+            .map(|response| {
+                self.incoming_event_blink();
+                self.push_event(Event::Received(response));
+            })
+            .map_err(|err| {
+                self.push_event(Event::Error(AppActionError::QuerySm(err)));
+            });
+
+        self.request_repaint();
+    }
+
     pub async fn run(self, mut actions: tokio::sync::mpsc::UnboundedReceiver<Action>) {
         while let Some(action) = actions.recv().await {
             match action {
                 Action::Bind(action) => self.bind(action).await,
                 Action::Unbind(action) => self.unbind(action).await,
                 Action::SubmitSms(action) => self.submit_sms(action).await,
+                Action::QuerySm(action) => self.query_sm(action).await,
             }
         }
     }

@@ -9,3 +9,6 @@ use logs::{LogsApp, SerdeLogsApp};
 
 mod tabs;
 pub use tabs::{SerdeTabs, Tabs};
+
+mod query_sm;
+pub use query_sm::{QuerySmApp, SerdeQuerySmApp};

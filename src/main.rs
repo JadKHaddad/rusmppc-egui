@@ -6,6 +6,10 @@ use rusmppc_egui::App;
 fn main() -> eframe::Result {
     use egui::IconData;
 
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .init();
+
     fn icon() -> IconData {
         // TODO: make an image
         let bytes = include_bytes!("../assets/rusmpp.png");

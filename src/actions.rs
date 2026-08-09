@@ -1,6 +1,6 @@
 use std::sync::{Arc, atomic::AtomicBool};
 
-use rusmpp::pdus::{BindAny, SubmitSm};
+use rusmpp::pdus::{BindAny, QuerySm, SubmitSm};
 
 use crate::{
     types::{SmppUrl, WsUrl},
@@ -49,6 +49,10 @@ impl ActionsChannel {
     pub fn submit_sms(&self, sms: Vec<SubmitSm>) {
         self.send(Action::SubmitSms(SubmitSmsAction { sms }));
     }
+
+    pub fn query_sm(&self, query_sm: QuerySm) {
+        self.send(Action::QuerySm(QuerySmAction { query_sm }));
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -57,6 +61,7 @@ pub enum Action {
     Bind(BindAction),
     Unbind(UnbindAction),
     SubmitSms(SubmitSmsAction),
+    QuerySm(QuerySmAction),
 }
 
 #[derive(Debug, Clone)]
@@ -77,4 +82,9 @@ pub struct UnbindAction {
 #[derive(Debug, Clone)]
 pub struct SubmitSmsAction {
     pub sms: Vec<SubmitSm>,
+}
+
+#[derive(Debug, Clone)]
+pub struct QuerySmAction {
+    pub query_sm: QuerySm,
 }

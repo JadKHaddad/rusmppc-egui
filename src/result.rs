@@ -7,6 +7,8 @@ pub enum AppActionError {
     Connection(anyhow::Error),
     Bind(rusmppc::error::Error),
     SubmitSm(rusmppc::error::Error),
+    QuerySm(rusmppc::error::Error),
+    DeliverSmResp(rusmppc::error::Error),
     Unbind(rusmppc::error::Error),
     Close(rusmppc::error::Error),
     /// rusmppc event stream background error
@@ -55,6 +57,10 @@ impl AppUiError {
         Self::Field(SmppFieldError::DestinationAddr)
     }
 
+    pub const fn invalid_message_id() -> Self {
+        Self::Field(SmppFieldError::InvalidMessageId)
+    }
+
     pub const fn invalid_protocol_id() -> Self {
         Self::Field(SmppFieldError::ProtocolId)
     }
@@ -86,6 +92,8 @@ pub enum SmppFieldError {
     SourceAddr,
     /// Invalid Destination Address
     DestinationAddr,
+    /// Invalid Message ID
+    InvalidMessageId,
     /// Invalid Protocol ID
     ProtocolId,
     /// Invalid SM Default Msg ID
@@ -107,6 +115,7 @@ impl SmppFieldError {
             SmppFieldError::DestinationAddr => {
                 "Destination Address must be 0-20 ascii octets long.".into()
             }
+            SmppFieldError::InvalidMessageId => "Message ID must be 0-64 ascii octets long.".into(),
             SmppFieldError::ProtocolId => {
                 "Protocol ID must be a valid unsigned 8-bit integer.".into()
             }

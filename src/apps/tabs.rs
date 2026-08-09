@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     actions::ActionsChannel,
-    apps::{BindApp, LogsApp, SerdeBindApp, SerdeLogsApp, SerdeSubmitSmApp, SubmitSmApp},
+    apps::{
+        BindApp, LogsApp, QuerySmApp, SerdeBindApp, SerdeLogsApp, SerdeQuerySmApp,
+        SerdeSubmitSmApp, SubmitSmApp,
+    },
     state::EventsHolder,
 };
 
@@ -12,12 +15,14 @@ use crate::{
 enum SerdeTab {
     Bind(SerdeBindApp),
     SubmitSm(SerdeSubmitSmApp),
+    QuerySm(SerdeQuerySmApp),
     Logs(SerdeLogsApp),
 }
 
 pub enum Tab {
     Bind(BindApp),
     SubmitSm(SubmitSmApp),
+    QuerySm(QuerySmApp),
     Logs(LogsApp),
 }
 
@@ -26,6 +31,7 @@ impl Tab {
         match self {
             Tab::Bind(_) => "Bind",
             Tab::SubmitSm(_) => "Submit Sm",
+            Tab::QuerySm(_) => "Query Sm",
             Tab::Logs(_) => "Logs",
         }
     }
@@ -34,6 +40,7 @@ impl Tab {
         match serde {
             SerdeTab::Bind(serde) => Tab::Bind(BindApp::from_serde(actions, serde)),
             SerdeTab::SubmitSm(serde) => Tab::SubmitSm(SubmitSmApp::from_serde(actions, serde)),
+            SerdeTab::QuerySm(serde) => Tab::QuerySm(QuerySmApp::from_serde(actions, serde)),
             SerdeTab::Logs(serde) => Tab::Logs(LogsApp::from_serde(events_holder, serde)),
         }
     }
@@ -42,24 +49,29 @@ impl Tab {
         match self {
             Tab::Bind(app) => SerdeTab::Bind(app.to_serde()),
             Tab::SubmitSm(app) => SerdeTab::SubmitSm(app.to_serde()),
+            Tab::QuerySm(app) => SerdeTab::QuerySm(app.to_serde()),
             Tab::Logs(app) => SerdeTab::Logs(app.to_serde()),
         }
     }
 
     fn set_bound(&mut self, bound: bool) {
         match self {
-            Tab::SubmitSm(app) => app.set_bound(bound),
             Tab::Bind(app) => app.set_bound(bound),
+            Tab::SubmitSm(app) => app.set_bound(bound),
+            Tab::QuerySm(app) => app.set_bound(bound),
             Tab::Logs(_) => {}
         }
     }
 
     fn ui(&mut self, ui: &mut egui::Ui) {
         match self {
+            Tab::Bind(app) => {
+                app.ui(ui);
+            }
             Tab::SubmitSm(app) => {
                 app.ui(ui);
             }
-            Tab::Bind(app) => {
+            Tab::QuerySm(app) => {
                 app.ui(ui);
             }
             Tab::Logs(app) => {
@@ -113,7 +125,10 @@ impl Tabs {
         let [_, _] = dock_state.main_surface_mut().split_right(
             a,
             0.3,
-            vec![Tab::SubmitSm(SubmitSmApp::new_default(actions))],
+            vec![
+                Tab::SubmitSm(SubmitSmApp::new_default(actions.clone())),
+                Tab::QuerySm(QuerySmApp::new_default(actions)),
+            ],
         );
 
         Self { dock_state }
