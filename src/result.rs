@@ -9,6 +9,7 @@ pub enum AppActionError {
     SubmitSm(rusmppc::error::Error),
     QuerySm(rusmppc::error::Error),
     DeliverSmResp(rusmppc::error::Error),
+    UnbindResp(rusmppc::error::Error),
     Unbind(rusmppc::error::Error),
     Close(rusmppc::error::Error),
     /// rusmppc event stream background error

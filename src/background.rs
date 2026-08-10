@@ -2,7 +2,7 @@ use std::{sync::atomic::Ordering, time::Duration};
 
 use futures::{Stream, StreamExt, TryFutureExt};
 use rusmpp::{
-    Command, CommandStatus, Pdu,
+    Command, CommandId, CommandStatus, Pdu,
     pdus::{BindReceiver, BindTransceiver, BindTransmitter, DeliverSmResp},
     types::COctetString,
 };
@@ -58,6 +58,11 @@ impl BackgroundApp {
         while let Some(event) = events.next().await {
             match event {
                 InsightEvent::Incoming(command) => {
+                    let unbind_resp_sequence_number = match command.id() {
+                        CommandId::Unbind => Some(command.sequence_number()),
+                        _ => None,
+                    };
+
                     let deliver_sm_resp = match command.pdu() {
                         Some(Pdu::DeliverSm(deliver_sm)) => {
                             let deliver_sm_resp = DeliverSmResp::builder()
@@ -76,6 +81,10 @@ impl BackgroundApp {
 
                     self.incoming_event_blink();
                     self.push_event(Event::Received(command));
+
+                    if let Some(sequence_number) = unbind_resp_sequence_number {
+                        self.unbind_resp(sequence_number).await;
+                    }
 
                     if let Some((sequence_number, deliver_sm_resp)) = deliver_sm_resp {
                         self.deliver_sm_resp(sequence_number, deliver_sm_resp).await;
@@ -305,6 +314,33 @@ impl BackgroundApp {
         self.request_repaint();
     }
 
+    async fn unbind_resp(&self, sequence_number: u32) {
+        let Some(client) = self.state.client().as_ref().map(|client| client.clone()) else {
+            return;
+        };
+
+        _ = client
+            .unbind_resp(sequence_number)
+            .await
+            .map(|_| {
+                Command::builder()
+                    .status(CommandStatus::EsmeRok)
+                    .sequence_number(sequence_number)
+                    .pdu(Pdu::UnbindResp)
+            })
+            .map(|command| {
+                self.outgoing_event_blink();
+                self.push_event(Event::Sent(command));
+                self.request_repaint();
+            })
+            .map_err(|err| {
+                self.push_event(Event::Error(AppActionError::UnbindResp(err)));
+            });
+
+        self.clear_client();
+        self.request_repaint();
+    }
+
     async fn submit_sms(&self, action: SubmitSmsAction) {
         let Some(client) = self.state.client().as_ref().map(|client| client.clone()) else {
             return;
@@ -358,6 +394,8 @@ impl BackgroundApp {
 
         self.request_repaint();
     }
+
+    // TODO: handle commands in a spawned process
 
     pub async fn run(self, mut actions: tokio::sync::mpsc::UnboundedReceiver<Action>) {
         while let Some(action) = actions.recv().await {
