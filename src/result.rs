@@ -77,6 +77,10 @@ impl AppUiError {
     pub const fn invalid_enquire_link_interval() -> Self {
         Self::Field(SmppFieldError::EnquireLinkInterval)
     }
+
+    pub const fn invalid_response_timeout() -> Self {
+        Self::Field(SmppFieldError::ResponseTimeout)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -103,6 +107,8 @@ pub enum SmppFieldError {
     PriorityFlag,
     /// Invalid Enquire Link Interval
     EnquireLinkInterval,
+    /// Invalid Response Timeout
+    ResponseTimeout,
 }
 
 impl SmppFieldError {
@@ -128,6 +134,9 @@ impl SmppFieldError {
             }
             SmppFieldError::EnquireLinkInterval => {
                 "Enquire Link Interval must be a valid positive integer.".into()
+            }
+            SmppFieldError::ResponseTimeout => {
+                "Response Timeout must be a valid positive integer.".into()
             }
         }
     }

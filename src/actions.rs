@@ -26,12 +26,14 @@ impl ActionsChannel {
         mode: BindMode,
         ws_proxy_url: WsUrl,
         url: SmppUrl,
+        response_timeout: u64,
         interval: u64,
         bind: BindAny,
         loading: Arc<AtomicBool>,
     ) {
         let action = Action::Bind(BindAction {
             mode,
+            response_timeout,
             interval,
             ws_proxy_url,
             url,
@@ -69,6 +71,7 @@ pub struct BindAction {
     pub mode: BindMode,
     pub ws_proxy_url: WsUrl,
     pub url: SmppUrl,
+    pub response_timeout: u64,
     pub interval: u64,
     pub bind: BindAny,
     pub loading: Arc<AtomicBool>,

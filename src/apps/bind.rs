@@ -30,6 +30,7 @@ struct RusmppFields {
     system_id: AppResult<COctetString<1, 16>>,
     password: AppResult<COctetString<1, 9>>,
     system_type: AppResult<COctetString<1, 13>>,
+    response_timeout_secs: AppResult<u64>,
     enquire_link_interval_secs: AppResult<u64>,
 }
 
@@ -40,6 +41,7 @@ impl RusmppFields {
         system_id: &str,
         password: &str,
         system_type: &str,
+        response_timeout_secs: &str,
         enquire_link_interval_secs: &str,
     ) -> Self {
         Self {
@@ -50,6 +52,9 @@ impl RusmppFields {
             password: COctetString::from_str(password).map_err(|_| AppUiError::invalid_password()),
             system_type: COctetString::from_str(system_type)
                 .map_err(|_| AppUiError::invalid_system_type()),
+            response_timeout_secs: response_timeout_secs
+                .parse::<u64>()
+                .map_err(|_| AppUiError::invalid_response_timeout()),
             enquire_link_interval_secs: enquire_link_interval_secs
                 .parse::<u64>()
                 .map_err(|_| AppUiError::invalid_enquire_link_interval()),
@@ -77,6 +82,12 @@ impl RusmppFields {
     fn set_system_type(&mut self, system_type: &str) {
         self.system_type =
             COctetString::from_str(system_type).map_err(|_| AppUiError::invalid_system_type());
+    }
+
+    fn set_response_timeout_secs(&mut self, secs: &str) {
+        self.response_timeout_secs = secs
+            .parse::<u64>()
+            .map_err(|_| AppUiError::invalid_response_timeout());
     }
 
     fn set_enquire_link_interval_secs(&mut self, secs: &str) {
@@ -125,6 +136,7 @@ pub struct SerdeBindApp {
     addr_npi: Npi,
     interface_version: InterfaceVersion,
     mode: BindMode,
+    response_timeout_secs: String,
     enquire_link_interval_secs: String,
 }
 
@@ -139,6 +151,7 @@ pub struct BindApp {
     addr_npi: Npi,
     interface_version: InterfaceVersion,
     mode: BindMode,
+    response_timeout_secs: DigitsTextBuffer<String>,
     enquire_link_interval_secs: DigitsTextBuffer<String>,
     fields: RusmppFields,
     bound: bool,
@@ -159,6 +172,7 @@ impl BindApp {
         addr_npi: Npi,
         interface_version: InterfaceVersion,
         mode: BindMode,
+        response_timeout_secs: String,
         enquire_link_interval_secs: String,
     ) -> Self {
         let fields = RusmppFields::new(
@@ -167,6 +181,7 @@ impl BindApp {
             &system_id,
             &password,
             &system_type,
+            &response_timeout_secs,
             &enquire_link_interval_secs,
         );
 
@@ -181,6 +196,7 @@ impl BindApp {
             addr_npi,
             interface_version,
             mode,
+            response_timeout_secs: DigitsTextBuffer::new(response_timeout_secs),
             enquire_link_interval_secs: DigitsTextBuffer::new(enquire_link_interval_secs),
             fields,
             bound: false,
@@ -201,6 +217,7 @@ impl BindApp {
         let addr_npi = Npi::default();
         let interface_version = InterfaceVersion::default();
         let mode = BindMode::default();
+        let response_timeout_secs = String::from("5");
         let enquire_link_interval_secs = String::from("30");
 
         Self::new_from_values(
@@ -214,6 +231,7 @@ impl BindApp {
             addr_npi,
             interface_version,
             mode,
+            response_timeout_secs,
             enquire_link_interval_secs,
         )
     }
@@ -230,6 +248,7 @@ impl BindApp {
             serde_bind_app.addr_npi,
             serde_bind_app.interface_version,
             serde_bind_app.mode,
+            serde_bind_app.response_timeout_secs,
             serde_bind_app.enquire_link_interval_secs,
         )
     }
@@ -244,6 +263,7 @@ impl BindApp {
             addr_npi: self.addr_npi,
             interface_version: self.interface_version,
             mode: self.mode,
+            response_timeout_secs: self.response_timeout_secs.inner().clone(),
             enquire_link_interval_secs: self.enquire_link_interval_secs.inner().clone(),
         }
     }
@@ -261,13 +281,16 @@ impl BindApp {
         Ok(bind_pdu)
     }
 
-    fn get_url_and_interval_and_and_pdu(&self) -> AppResult<(WsUrl, SmppUrl, u64, BindAny)> {
+    fn get_url_and_response_timeout_and_interval_and_and_pdu(
+        &self,
+    ) -> AppResult<(WsUrl, SmppUrl, u64, u64, BindAny)> {
         let ws_url = self.fields.ws_proxy_url.clone()?;
         let smpp_url = self.fields.url.clone()?;
+        let response_timeout = self.fields.response_timeout_secs.clone()?;
         let interval = self.fields.enquire_link_interval_secs.clone()?;
         let bind_pdu = self.create_bind_pdu()?;
 
-        Ok((ws_url, smpp_url, interval, bind_pdu))
+        Ok((ws_url, smpp_url, response_timeout, interval, bind_pdu))
     }
 
     #[allow(dead_code)]
@@ -292,6 +315,11 @@ impl BindApp {
     fn update_system_type(&mut self) {
         self.system_type.retain(|c| c.is_ascii());
         self.fields.set_system_type(&self.system_type);
+    }
+
+    fn update_response_timeout_secs(&mut self) {
+        self.fields
+            .set_response_timeout_secs(&self.response_timeout_secs);
     }
 
     fn update_enquire_link_interval_secs(&mut self) {
@@ -326,13 +354,14 @@ impl BindApp {
     fn on_bind_button_clicked(&mut self) {
         if self.bound {
             self.actions.unbind(self.loading.clone());
-        } else if let Ok((ws_proxy_url, smpp_url, interval, bind)) =
-            self.get_url_and_interval_and_and_pdu()
+        } else if let Ok((ws_proxy_url, smpp_url, response_timeout, interval, bind)) =
+            self.get_url_and_response_timeout_and_interval_and_and_pdu()
         {
             self.actions.bind(
                 self.mode,
                 ws_proxy_url,
                 smpp_url,
+                response_timeout,
                 interval,
                 bind,
                 self.loading.clone(),
@@ -474,6 +503,22 @@ impl BindApp {
                             BindMode::VARIANTS,
                         ));
                         ui.end_row();
+
+                        ui.label("Response Timeout");
+                        ui.add(
+                            egui::TextEdit::singleline(&mut self.response_timeout_secs)
+                                .desired_width(bind_mode_combo_response.rect.width() - 8.0),
+                        )
+                        .on_hover_text("Response Timeout in seconds")
+                        .changed()
+                        .then(|| {
+                            self.update_response_timeout_secs();
+                        });
+                        ui.end_row();
+
+                        if let Err(err) = &self.fields.response_timeout_secs {
+                            display_err(ui, err);
+                        }
 
                         ui.label("Enquire Link Interval");
                         ui.add(

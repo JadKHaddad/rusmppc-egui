@@ -119,9 +119,11 @@ impl BackgroundApp {
         &self,
         url: SmppUrl,
         _ws_proxy_url: WsUrl,
+        response_timeout: u64,
         interval: u64,
     ) -> Result<(Client, impl Stream<Item = InsightEvent> + 'static), AppActionError> {
         Client::builder()
+            .response_timeout(Duration::from_secs(response_timeout))
             .enquire_link_interval(Duration::from_secs(interval))
             .disable_interface_version_check()
             .events()
@@ -136,6 +138,7 @@ impl BackgroundApp {
         &self,
         url: SmppUrl,
         ws_proxy_url: WsUrl,
+        response_timeout: u64,
         interval: u64,
     ) -> Result<(Client, impl Stream<Item = InsightEvent> + 'static), AppActionError> {
         use gloo_net::websocket::{Message, futures::WebSocket};
@@ -183,6 +186,7 @@ impl BackgroundApp {
             })??;
 
         let client = Client::builder_wasm()
+            .response_timeout(Duration::from_secs(response_timeout))
             .enquire_link_interval(Duration::from_secs(interval))
             .disable_interface_version_check()
             .events()
@@ -200,7 +204,12 @@ impl BackgroundApp {
         action.loading.store(true, Ordering::Relaxed);
 
         match self
-            .connect(action.url, action.ws_proxy_url, action.interval)
+            .connect(
+                action.url,
+                action.ws_proxy_url,
+                action.response_timeout,
+                action.interval,
+            )
             .await
         {
             Err(err) => {
