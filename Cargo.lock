@@ -3546,7 +3546,7 @@ dependencies = [
 [[package]]
 name = "rusmpp"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
 dependencies = [
  "rusmpp-core",
  "rusmpp-extra",
@@ -3556,7 +3556,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-core"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
 dependencies = [
  "bytes",
  "heapless",
@@ -3569,7 +3569,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-extra"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
 dependencies = [
  "encoding_rs",
  "rusmpp-core",
@@ -3580,7 +3580,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-macros"
 version = "0.2.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3590,7 +3590,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-tokio-codec"
 version = "0.1.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
 dependencies = [
  "bytes",
  "rusmpp-core",
@@ -3601,7 +3601,7 @@ dependencies = [
 [[package]]
 name = "rusmppc"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=b5b2967#b5b2967ea5051259336413a57cbf5c2075ca3cca"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
 dependencies = [
  "futures",
  "gloo-timers",

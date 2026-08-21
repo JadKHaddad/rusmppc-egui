@@ -1,6 +1,6 @@
 use rusmpp::values::{
     IntermediateNotification as RusmppIntermediateNotification,
-    MCDeliveryReceipt as RusmppMCDeliveryReceipt, RegisteredDelivery as RusmppRegisteredDelivery,
+    McDeliveryReceipt as RusmppMcDeliveryReceipt, RegisteredDelivery as RusmppRegisteredDelivery,
     SmeOriginatedAcknowledgement as RusmppSmeOriginatedAcknowledgement,
 };
 
@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 use strum::{IntoStaticStr, VariantArray};
 
 pub struct RegisteredDelivery {
-    mc_delivery_receipt: MCDeliveryReceipt,
+    mc_delivery_receipt: McDeliveryReceipt,
     sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
     intermediate_notification: IntermediateNotification,
 }
 
 impl RegisteredDelivery {
     pub fn new(
-        mc_delivery_receipt: MCDeliveryReceipt,
+        mc_delivery_receipt: McDeliveryReceipt,
         sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
         intermediate_notification: IntermediateNotification,
     ) -> Self {
@@ -30,7 +30,7 @@ impl RegisteredDelivery {
 #[derive(
     IntoStaticStr, VariantArray, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize,
 )]
-pub enum MCDeliveryReceipt {
+pub enum McDeliveryReceipt {
     #[default]
     NotRequested,
     SuccessOrFailure,
@@ -58,17 +58,17 @@ pub enum IntermediateNotification {
     Requested,
 }
 
-impl From<MCDeliveryReceipt> for RusmppMCDeliveryReceipt {
-    fn from(value: MCDeliveryReceipt) -> Self {
+impl From<McDeliveryReceipt> for RusmppMcDeliveryReceipt {
+    fn from(value: McDeliveryReceipt) -> Self {
         match value {
-            MCDeliveryReceipt::NotRequested => Self::NoMcDeliveryReceiptRequested,
-            MCDeliveryReceipt::SuccessOrFailure => {
+            McDeliveryReceipt::NotRequested => Self::NoMcDeliveryReceiptRequested,
+            McDeliveryReceipt::SuccessOrFailure => {
                 Self::McDeliveryReceiptRequestedWhereFinalDeliveryOutcomeIsSuccessOrFailure
             }
-            MCDeliveryReceipt::Failure => {
+            McDeliveryReceipt::Failure => {
                 Self::McDeliveryReceiptRequestedWhereFinalDeliveryOutcomeIsFailure
             }
-            MCDeliveryReceipt::Success => {
+            McDeliveryReceipt::Success => {
                 Self::McDeliveryReceiptRequestedWhereFinalDeliveryOutcomeIsSuccess
             }
         }
@@ -101,14 +101,14 @@ impl From<IntermediateNotification> for RusmppIntermediateNotification {
 
 impl
     From<(
-        MCDeliveryReceipt,
+        McDeliveryReceipt,
         SmeOriginatedAcknowledgement,
         IntermediateNotification,
     )> for RegisteredDelivery
 {
     fn from(
         value: (
-            MCDeliveryReceipt,
+            McDeliveryReceipt,
             SmeOriginatedAcknowledgement,
             IntermediateNotification,
         ),

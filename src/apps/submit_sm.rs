@@ -21,7 +21,7 @@ use crate::{
     values::{
         Ansi41CbsPriorityFlag, Ansi41Specific, Ansi136PriorityFlag, DataCoding, EsmClass,
         GsmCbsPriorityFlag, GsmFeatures, GsmSmsPriorityFlag, IntermediateNotification,
-        Is95PriorityFlag, MCDeliveryReceipt, MessageType, MessagingMode, Npi, RegisteredDelivery,
+        Is95PriorityFlag, McDeliveryReceipt, MessageType, MessagingMode, Npi, RegisteredDelivery,
         SmeOriginatedAcknowledgement, Ton,
     },
     widgets::{ComboBox, DigitsTextBuffer},
@@ -195,7 +195,7 @@ pub struct SerdeSubmitSmApp {
     protocol_id: String,
     sm_default_msg_id: String,
     priority_flag: String,
-    mc_delivery_receipt: MCDeliveryReceipt,
+    mc_delivery_receipt: McDeliveryReceipt,
     sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
     intermediate_notification: IntermediateNotification,
 }
@@ -216,7 +216,7 @@ pub struct SubmitSmApp {
     protocol_id: DigitsTextBuffer<String>,
     sm_default_msg_id: DigitsTextBuffer<String>,
     priority_flag: DigitsTextBuffer<String>,
-    mc_delivery_receipt: MCDeliveryReceipt,
+    mc_delivery_receipt: McDeliveryReceipt,
     sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
     intermediate_notification: IntermediateNotification,
     reference: u8,
@@ -242,7 +242,7 @@ impl SubmitSmApp {
         protocol_id: String,
         sm_default_msg_id: String,
         priority_flag: String,
-        mc_delivery_receipt: MCDeliveryReceipt,
+        mc_delivery_receipt: McDeliveryReceipt,
         sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
         intermediate_notification: IntermediateNotification,
     ) -> Self {
@@ -299,7 +299,7 @@ impl SubmitSmApp {
         let protocol_id = String::from("0");
         let sm_default_msg_id = String::from("0");
         let priority_flag = String::from("0");
-        let mc_delivery_receipt = MCDeliveryReceipt::default();
+        let mc_delivery_receipt = McDeliveryReceipt::default();
         let sme_originated_acknowledgement = SmeOriginatedAcknowledgement::default();
         let intermediate_notification = IntermediateNotification::default();
 
@@ -723,7 +723,7 @@ impl SubmitSmApp {
                     ui.add(ComboBox::new(
                         "submit_sm_mc_delivery_receipt",
                         &mut self.mc_delivery_receipt,
-                        MCDeliveryReceipt::VARIANTS,
+                        McDeliveryReceipt::VARIANTS,
                     ));
 
                     ui.end_row();

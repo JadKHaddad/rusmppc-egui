@@ -19,6 +19,6 @@ pub use priority_flag::{
     Is95PriorityFlag,
 };
 pub use registered_delivery::{
-    IntermediateNotification, MCDeliveryReceipt, RegisteredDelivery, SmeOriginatedAcknowledgement,
+    IntermediateNotification, McDeliveryReceipt, RegisteredDelivery, SmeOriginatedAcknowledgement,
 };
 pub use ton::Ton;

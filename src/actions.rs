@@ -21,6 +21,7 @@ impl ActionsChannel {
         let _ = self.sender.send(action);
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn bind(
         &self,
         mode: BindMode,
