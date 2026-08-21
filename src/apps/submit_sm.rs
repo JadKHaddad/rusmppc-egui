@@ -19,8 +19,8 @@ use crate::{
     colors::{FUSION_RED, HIGH_BLUE},
     result::{AppResult, AppUiError, MultiPartError},
     values::{
-        Ansi41CbsPriorityFlag, Ansi41Specific, Ansi136PriorityFlag, DataCoding, EsmClass,
-        GsmCbsPriorityFlag, GsmFeatures, GsmSmsPriorityFlag, IntermediateNotification,
+        Ansi41CbsPriorityFlag, Ansi41Specific, Ansi136PriorityFlag, Concatenation, DataCoding,
+        EsmClass, GsmCbsPriorityFlag, GsmFeatures, GsmSmsPriorityFlag, IntermediateNotification,
         Is95PriorityFlag, McDeliveryReceipt, MessageType, MessagingMode, Npi, RegisteredDelivery,
         SmeOriginatedAcknowledgement, Ton,
     },
@@ -190,6 +190,7 @@ pub struct SerdeSubmitSmApp {
     dest_addr_npi: Npi,
     destination_addr: String,
     data_coding: DataCoding,
+    concatenation: Concatenation,
     esm_class: EsmClass,
     last_gsm_features: GsmFeatures,
     protocol_id: String,
@@ -211,6 +212,7 @@ pub struct SubmitSmApp {
     dest_addr_npi: Npi,
     destination_addr: String,
     data_coding: DataCoding,
+    concatenation: Concatenation,
     esm_class: EsmClass,
     last_gsm_features: GsmFeatures,
     protocol_id: DigitsTextBuffer<String>,
@@ -237,6 +239,7 @@ impl SubmitSmApp {
         dest_addr_npi: Npi,
         destination_addr: String,
         data_coding: DataCoding,
+        concatenation: Concatenation,
         esm_class: EsmClass,
         last_gsm_features: GsmFeatures,
         protocol_id: String,
@@ -266,6 +269,7 @@ impl SubmitSmApp {
             dest_addr_npi,
             destination_addr,
             data_coding,
+            concatenation,
             esm_class,
             last_gsm_features,
             protocol_id: DigitsTextBuffer::new(protocol_id),
@@ -294,6 +298,7 @@ impl SubmitSmApp {
         let dest_addr_npi = Npi::default();
         let short_message = String::from("Hello Rusmppc!");
         let data_coding = DataCoding::default();
+        let concatenation: Concatenation = Concatenation::default();
         let esm_class = EsmClass::default();
         let last_gsm_features = GsmFeatures::default();
         let protocol_id = String::from("0");
@@ -314,6 +319,7 @@ impl SubmitSmApp {
             dest_addr_npi,
             destination_addr,
             data_coding,
+            concatenation,
             esm_class,
             last_gsm_features,
             protocol_id,
@@ -337,6 +343,7 @@ impl SubmitSmApp {
             serde_app.dest_addr_npi,
             serde_app.destination_addr,
             serde_app.data_coding,
+            serde_app.concatenation,
             serde_app.esm_class,
             serde_app.last_gsm_features,
             serde_app.protocol_id,
@@ -359,6 +366,7 @@ impl SubmitSmApp {
             dest_addr_npi: self.dest_addr_npi,
             destination_addr: self.destination_addr.clone(),
             data_coding: self.data_coding,
+            concatenation: self.concatenation,
             esm_class: self.esm_class,
             last_gsm_features: self.last_gsm_features,
             protocol_id: self.protocol_id.inner().clone(),
@@ -457,11 +465,30 @@ impl SubmitSmApp {
     }
 
     fn build_submit_sms(&self) -> AppResult<Vec<SubmitSm>> {
+        match self.concatenation {
+            Concatenation::Udh => self.build_submit_sms_udh(),
+            Concatenation::Sar => self.build_submit_sms_sar(),
+        }
+    }
+
+    fn build_submit_sms_udh(&self) -> AppResult<Vec<SubmitSm>> {
         let submit_sm = self.build_submit_sm()?;
 
         submit_sm
             .multipart(&self.short_message)
             .reference_u8(self.reference)
+            .encoder(self.encoder())
+            .build()
+            .map_err(|_| AppUiError::MultiPart(MultiPartError::Todo))
+    }
+
+    fn build_submit_sms_sar(&self) -> AppResult<Vec<SubmitSm>> {
+        let submit_sm = self.build_submit_sm()?;
+
+        submit_sm
+            .sar_multipart(&self.short_message)
+            // XXX: lossy conversion from u8 to u16
+            .reference(self.reference as u16)
             .encoder(self.encoder())
             .build()
             .map_err(|_| AppUiError::MultiPart(MultiPartError::Todo))
@@ -517,10 +544,12 @@ impl SubmitSmApp {
     }
 
     fn udhi_indicator_must_be_set(&self) -> bool {
-        self.fields
-            .submit_sms
-            .as_ref()
-            .is_ok_and(|sms| sms.len() > 1)
+        self.concatenation.is_udh()
+            && self
+                .fields
+                .submit_sms
+                .as_ref()
+                .is_ok_and(|sms| sms.len() > 1)
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
@@ -758,19 +787,34 @@ impl SubmitSmApp {
 
             ui.vertical(|ui| {
                 egui::Grid::new("submit_sm_data_coding_grid")
-                    .num_columns(2)
+                    .num_columns(4)
                     .spacing([12.0, 10.0])
                     .striped(false)
                     .show(ui, |ui| {
                         ui.label("Data Coding");
                         // TODO: make our ComboBox widget take a function for the .changed() callback
                         egui::ComboBox::from_id_salt("submit_sm_data_coding")
-                            .width(100.0)
                             .selected_text(<&'static str>::from(self.data_coding))
                             .show_ui(ui, |ui| {
                                 for item in DataCoding::VARIANTS {
                                     ui.selectable_value(
                                         &mut self.data_coding,
+                                        *item,
+                                        <&'static str>::from(*item),
+                                    )
+                                    .changed()
+                                    .then(|| self.update_short_message());
+                                }
+                            });
+
+                        ui.label("Concatenation");
+
+                        egui::ComboBox::from_id_salt("submit_sm_concatenation")
+                            .selected_text(<&'static str>::from(self.concatenation))
+                            .show_ui(ui, |ui| {
+                                for item in Concatenation::VARIANTS {
+                                    ui.selectable_value(
+                                        &mut self.concatenation,
                                         *item,
                                         <&'static str>::from(*item),
                                     )
