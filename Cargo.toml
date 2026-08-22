@@ -12,7 +12,7 @@ egui_virtual_list = "0.9.0"
 tokio = { version = "1.48.0", features = ["sync"] }
 futures = "0.3.31"
 parking_lot = "0.12.5"
-rusmpp = { git = "https://github.com/Rusmpp/Rusmpp", rev = "6952c6c", package = "rusmpp" }
+rusmpp = { git = "https://github.com/Rusmpp/Rusmpp", rev = "de9b20610812dba94304dda1f6bf194b90b4ee84", package = "rusmpp" }
 strum = { version = "0.27", features = ["derive"] }
 anyhow = "1.0.100"
 url = "2.5.7"
@@ -20,17 +20,18 @@ serde = { version = "1.0", features = ["derive"] }
 tokio-util = { version = "0.7.17", features = ["compat"] }
 serde_json = "1.0.148"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1.44"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tokio = { version = "1.48.0", features = ["rt", "sync"] }
 image = "0.25.9"
 exr = "1.74.0"
-rusmppc = { git = "https://github.com/Rusmpp/Rusmpp", rev = "6952c6c", package = "rusmppc", default-features = true }
+rusmppc = { git = "https://github.com/Rusmpp/Rusmpp", rev = "de9b20610812dba94304dda1f6bf194b90b4ee84", package = "rusmppc", default-features = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4.71"
 web-sys = "0.3.98"
 gloo-net = { version = "0.7.0", features = ["websocket", "io-util"] }
-rusmppc = { git = "https://github.com/Rusmpp/Rusmpp", rev = "6952c6c", package = "rusmppc", default-features = false, features = [
+rusmppc = { git = "https://github.com/Rusmpp/Rusmpp", rev = "de9b20610812dba94304dda1f6bf194b90b4ee84", package = "rusmppc", default-features = false, features = [
     "wasm",
 ] }

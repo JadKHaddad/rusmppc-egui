@@ -5,7 +5,11 @@ use encoder::Encoder;
 use rusmpp::{
     extra::{
         concatenation::SubmitSmMultipartExt,
-        encoding::{gsm7bit::Gsm7BitUnpacked, latin1::Latin1, ucs2::Ucs2},
+        encoding::{
+            gsm7bit::{Gsm7BitPacked, Gsm7BitUnpacked},
+            latin1::Latin1,
+            ucs2::Ucs2,
+        },
     },
     pdus::SubmitSm,
     types::COctetString,
@@ -385,6 +389,7 @@ impl SubmitSmApp {
     pub fn encoder(&self) -> Encoder {
         match self.data_coding {
             DataCoding::Gsm7BitUnpacked => Encoder::Gsm7BitUnpacked(Gsm7BitUnpacked::default()),
+            DataCoding::Gsm7BitPacked => Encoder::Gsm7BitPacked(Gsm7BitPacked::default()),
             DataCoding::Latin1 => Encoder::Latin1(Latin1::default()),
             DataCoding::Ucs2 => Encoder::Ucs2(Ucs2::default()),
         }

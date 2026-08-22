@@ -3546,7 +3546,7 @@ dependencies = [
 [[package]]
 name = "rusmpp"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=de9b20610812dba94304dda1f6bf194b90b4ee84#de9b20610812dba94304dda1f6bf194b90b4ee84"
 dependencies = [
  "rusmpp-core",
  "rusmpp-extra",
@@ -3556,7 +3556,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-core"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=de9b20610812dba94304dda1f6bf194b90b4ee84#de9b20610812dba94304dda1f6bf194b90b4ee84"
 dependencies = [
  "bytes",
  "heapless",
@@ -3569,7 +3569,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-extra"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=de9b20610812dba94304dda1f6bf194b90b4ee84#de9b20610812dba94304dda1f6bf194b90b4ee84"
 dependencies = [
  "encoding_rs",
  "rusmpp-core",
@@ -3580,7 +3580,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-macros"
 version = "0.2.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=de9b20610812dba94304dda1f6bf194b90b4ee84#de9b20610812dba94304dda1f6bf194b90b4ee84"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3590,7 +3590,7 @@ dependencies = [
 [[package]]
 name = "rusmpp-tokio-codec"
 version = "0.1.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=de9b20610812dba94304dda1f6bf194b90b4ee84#de9b20610812dba94304dda1f6bf194b90b4ee84"
 dependencies = [
  "bytes",
  "rusmpp-core",
@@ -3601,7 +3601,7 @@ dependencies = [
 [[package]]
 name = "rusmppc"
 version = "0.4.0"
-source = "git+https://github.com/Rusmpp/Rusmpp?rev=6952c6c#6952c6c1737c32de8396393b08dbbc0cdbc3599a"
+source = "git+https://github.com/Rusmpp/Rusmpp?rev=de9b20610812dba94304dda1f6bf194b90b4ee84#de9b20610812dba94304dda1f6bf194b90b4ee84"
 dependencies = [
  "futures",
  "gloo-timers",
@@ -3646,6 +3646,7 @@ dependencies = [
  "strum",
  "tokio",
  "tokio-util",
+ "tracing",
  "tracing-subscriber",
  "url",
  "wasm-bindgen-futures",
