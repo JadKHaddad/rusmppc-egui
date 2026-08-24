@@ -21,6 +21,7 @@ pub enum AppUiError {
     WsUrl(WsUrlError),
     SmppUrl(SmppUrlError),
     Field(SmppFieldError),
+    Encode(EncodeError),
     MultiPart(MultiPartError),
 }
 
@@ -30,6 +31,7 @@ impl AppUiError {
             AppUiError::WsUrl(err) => err.display_message(),
             AppUiError::Field(err) => err.display_message(),
             AppUiError::SmppUrl(err) => err.display_message(),
+            AppUiError::Encode(err) => err.display_message(),
             AppUiError::MultiPart(err) => err.display_message(),
         }
     }
@@ -183,6 +185,19 @@ impl SmppUrlError {
 }
 
 #[derive(Debug, Clone)]
+pub enum EncodeError {
+    // TODO
+    Todo,
+}
+
+impl EncodeError {
+    pub fn display_message(&self) -> Cow<'static, str> {
+        // TODO
+        "Error".into()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum MultiPartError {
     // TODO
     Todo,
@@ -191,6 +206,6 @@ pub enum MultiPartError {
 impl MultiPartError {
     pub fn display_message(&self) -> Cow<'static, str> {
         // TODO
-        "".into()
+        "Error".into()
     }
 }

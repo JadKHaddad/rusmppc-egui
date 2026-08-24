@@ -20,6 +20,7 @@
         "Smpp",
         "smpps",
         "ssmpp",
+        "tlvs",
         "udhi"
     ],
     "ignorePaths": [

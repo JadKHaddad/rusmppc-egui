@@ -8,6 +8,7 @@ pub enum Concatenation {
     #[default]
     Udh,
     Sar,
+    MessagePayload,
 }
 
 impl Concatenation {
