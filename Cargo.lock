@@ -3652,7 +3652,6 @@ dependencies = [
  "rusmpp",
  "rusmppc",
  "serde",
- "serde_json",
  "strum",
  "tokio",
  "tokio-util",
