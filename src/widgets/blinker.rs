@@ -1,4 +1,3 @@
-use core::f64;
 use std::{
     sync::{Arc, atomic::AtomicBool},
     time::Duration,

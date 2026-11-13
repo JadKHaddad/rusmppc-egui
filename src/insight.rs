@@ -1,4 +1,4 @@
-use rusmpp::{Command, CommandStatus, Pdu};
+use rusmpp::Command;
 use rusmppc::event::Insight;
 
 use crate::values::Event;
@@ -22,26 +22,11 @@ pub trait InsightExt: Sized {
 
 impl InsightExt for Insight {
     fn into_command(self) -> Option<InsightCommand> {
-        let command =
-            match self {
-                Insight::SentEnquireLink(number) => InsightCommand::Sent(Command::new_const(
-                    CommandStatus::EsmeRok,
-                    number,
-                    Pdu::EnquireLink,
-                )),
-                Insight::ReceivedEnquireLinkResp(number) => InsightCommand::Received(
-                    Command::new_const(CommandStatus::EsmeRok, number, Pdu::EnquireLinkResp),
-                ),
-                Insight::ReceivedEnquireLink(number) => InsightCommand::Received(
-                    Command::new_const(CommandStatus::EsmeRok, number, Pdu::EnquireLink),
-                ),
-                Insight::SentEnquireLinkResp(number) => InsightCommand::Sent(Command::new_const(
-                    CommandStatus::EsmeRok,
-                    number,
-                    Pdu::EnquireLinkResp,
-                )),
-                _ => return None,
-            };
+        let command = match self {
+            Insight::Sent(command) => InsightCommand::Sent(command),
+            Insight::Received(command) => InsightCommand::Received(command),
+            _ => return None,
+        };
 
         Some(command)
     }

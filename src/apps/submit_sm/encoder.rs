@@ -3,9 +3,9 @@ use rusmpp::{
         concatenation::{Concatenation, Concatenator},
         encoding::{
             Encoder as RusmppEncoder,
-            gsm7bit::{Gsm7BitPacked, Gsm7BitUnpacked},
-            latin1::Latin1,
-            ucs2::Ucs2,
+            gsm7bit::{Gsm7BitPackedEncoder, Gsm7BitUnpackedEncoder},
+            latin1::Latin1Encoder,
+            ucs2::Ucs2Encoder,
         },
     },
     values::DataCoding,
@@ -14,10 +14,10 @@ use rusmpp::{
 use crate::result::{EncodeError, MultiPartError};
 
 pub enum Encoder {
-    Gsm7BitUnpacked(Gsm7BitUnpacked),
-    Gsm7BitPacked(Gsm7BitPacked),
-    Latin1(Latin1),
-    Ucs2(Ucs2),
+    Gsm7BitUnpacked(Gsm7BitUnpackedEncoder),
+    Gsm7BitPacked(Gsm7BitPackedEncoder),
+    Latin1(Latin1Encoder),
+    Ucs2(Ucs2Encoder),
 }
 
 impl RusmppEncoder for Encoder {

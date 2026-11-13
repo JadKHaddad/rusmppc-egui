@@ -4,12 +4,12 @@ use eframe::egui::{self, Color32, RichText, Separator};
 use encoder::Encoder;
 use rusmpp::{
     extra::{
-        concatenation::SubmitSmMultipartExt,
+        concatenation::Multipart,
         encoding::{
             Encoder as _,
-            gsm7bit::{Gsm7BitPacked, Gsm7BitUnpacked},
-            latin1::Latin1,
-            ucs2::Ucs2,
+            gsm7bit::{Gsm7BitPackedEncoder, Gsm7BitUnpackedEncoder},
+            latin1::Latin1Encoder,
+            ucs2::Ucs2Encoder,
         },
     },
     pdus::SubmitSm,
@@ -403,10 +403,12 @@ impl SubmitSmApp {
     /// For example, allowing the user to select different alphabets for GSM 7-bit encoding.
     pub fn encoder(&self) -> Encoder {
         match self.data_coding {
-            DataCoding::Gsm7BitUnpacked => Encoder::Gsm7BitUnpacked(Gsm7BitUnpacked::default()),
-            DataCoding::Gsm7BitPacked => Encoder::Gsm7BitPacked(Gsm7BitPacked::default()),
-            DataCoding::Latin1 => Encoder::Latin1(Latin1::default()),
-            DataCoding::Ucs2 => Encoder::Ucs2(Ucs2::default()),
+            DataCoding::Gsm7BitUnpacked => {
+                Encoder::Gsm7BitUnpacked(Gsm7BitUnpackedEncoder::default())
+            }
+            DataCoding::Gsm7BitPacked => Encoder::Gsm7BitPacked(Gsm7BitPackedEncoder::default()),
+            DataCoding::Latin1 => Encoder::Latin1(Latin1Encoder::default()),
+            DataCoding::Ucs2 => Encoder::Ucs2(Ucs2Encoder::default()),
         }
     }
 
@@ -497,7 +499,7 @@ impl SubmitSmApp {
         let submit_sm = self.build_submit_sm()?;
 
         let sms = submit_sm
-            .multipart(&self.short_message)
+            .udh_multipart(&self.short_message)
             .reference_u8(self.reference)
             .encoder(self.encoder())
             .build()
