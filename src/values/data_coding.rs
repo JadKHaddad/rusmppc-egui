@@ -8,6 +8,7 @@ use strum::{IntoStaticStr, VariantArray};
 pub enum DataCoding {
     #[default]
     Gsm7BitUnpacked,
+    Gsm7BitPacked,
     Latin1,
     Ucs2,
 }
@@ -16,6 +17,7 @@ impl From<DataCoding> for RusmppDataCoding {
     fn from(data_coding: DataCoding) -> Self {
         match data_coding {
             DataCoding::Gsm7BitUnpacked => RusmppDataCoding::McSpecific,
+            DataCoding::Gsm7BitPacked => RusmppDataCoding::McSpecific,
             DataCoding::Latin1 => RusmppDataCoding::Latin1,
             DataCoding::Ucs2 => RusmppDataCoding::Ucs2,
         }

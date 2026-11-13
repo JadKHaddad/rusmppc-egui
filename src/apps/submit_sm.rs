@@ -5,29 +5,47 @@ use encoder::Encoder;
 use rusmpp::{
     extra::{
         concatenation::SubmitSmMultipartExt,
-        encoding::{gsm7bit::Gsm7BitUnpacked, latin1::Latin1, ucs2::Ucs2},
+        encoding::{
+            Encoder as _,
+            gsm7bit::{Gsm7BitPacked, Gsm7BitUnpacked},
+            latin1::Latin1,
+            ucs2::Ucs2,
+        },
     },
     pdus::SubmitSm,
-    types::COctetString,
-    values::{EsmClass as RusmppEsmClass, ServiceType},
+    tlvs::MessageSubmissionRequestTlvValue,
+    types::{AnyOctetString, COctetString},
+    values::{EsmClass as RusmppEsmClass, MessagePayload, ServiceType},
 };
 use serde::{Deserialize, Serialize};
 use strum::VariantArray;
 
 use crate::{
     actions::ActionsChannel,
+    apps::submit_sm::submit_sm_ext::SubmitSmExt,
     colors::{FUSION_RED, HIGH_BLUE},
-    result::{AppResult, AppUiError, MultiPartError},
+    result::{AppResult, AppUiError, EncodeError, MultiPartError},
     values::{
-        Ansi41CbsPriorityFlag, Ansi41Specific, Ansi136PriorityFlag, DataCoding, EsmClass,
-        GsmCbsPriorityFlag, GsmFeatures, GsmSmsPriorityFlag, IntermediateNotification,
-        Is95PriorityFlag, MCDeliveryReceipt, MessageType, MessagingMode, Npi, RegisteredDelivery,
+        Ansi41CbsPriorityFlag, Ansi41Specific, Ansi136PriorityFlag, Concatenation, DataCoding,
+        EsmClass, GsmCbsPriorityFlag, GsmFeatures, GsmSmsPriorityFlag, IntermediateNotification,
+        Is95PriorityFlag, McDeliveryReceipt, MessageType, MessagingMode, Npi, RegisteredDelivery,
         SmeOriginatedAcknowledgement, Ton,
     },
     widgets::{ComboBox, DigitsTextBuffer},
 };
 
 mod encoder;
+mod submit_sm_ext;
+
+#[derive(Default)]
+struct SubmitSms {
+    sms: Vec<SubmitSm>,
+    bytes: usize,
+    /// Should only be set if `max byte count` is relevant. e.g. when concatenating using `UDH` or `SAR`.
+    ///
+    /// If using `MessagePayload`, this field is irrelevant.
+    max_bytes: Option<usize>,
+}
 
 struct RusmppFields {
     service_type: AppResult<COctetString<1, 6>>,
@@ -37,7 +55,7 @@ struct RusmppFields {
     sm_default_msg_id: AppResult<u8>,
     priority_flag: AppResult<u8>,
     priority_flag_types: PriorityFlagTypes,
-    submit_sms: AppResult<Vec<SubmitSm>>,
+    submit_sms: AppResult<SubmitSms>,
 }
 
 #[derive(Default)]
@@ -100,7 +118,7 @@ impl RusmppFields {
                 .parse::<u8>()
                 .map_err(|_| AppUiError::invalid_priority_flag()),
             priority_flag_types: PriorityFlagTypes::default(),
-            submit_sms: Ok(Vec::new()),
+            submit_sms: Ok(Default::default()),
         };
 
         fields.update_priority_flag_types();
@@ -154,10 +172,11 @@ impl RusmppFields {
     fn sms_valid_and_not_empty(&self) -> bool {
         match &self.submit_sms {
             Ok(sms) => {
-                !sms.is_empty()
+                !sms.sms.is_empty()
                     && sms
+                        .sms
                         .iter()
-                        .any(|submit_sm| !submit_sm.short_message().is_empty())
+                        .all(|submit_sm| submit_sm.has_non_empty_message())
             }
             Err(_) => false,
         }
@@ -190,12 +209,13 @@ pub struct SerdeSubmitSmApp {
     dest_addr_npi: Npi,
     destination_addr: String,
     data_coding: DataCoding,
+    concatenation: Concatenation,
     esm_class: EsmClass,
     last_gsm_features: GsmFeatures,
     protocol_id: String,
     sm_default_msg_id: String,
     priority_flag: String,
-    mc_delivery_receipt: MCDeliveryReceipt,
+    mc_delivery_receipt: McDeliveryReceipt,
     sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
     intermediate_notification: IntermediateNotification,
 }
@@ -211,12 +231,13 @@ pub struct SubmitSmApp {
     dest_addr_npi: Npi,
     destination_addr: String,
     data_coding: DataCoding,
+    concatenation: Concatenation,
     esm_class: EsmClass,
     last_gsm_features: GsmFeatures,
     protocol_id: DigitsTextBuffer<String>,
     sm_default_msg_id: DigitsTextBuffer<String>,
     priority_flag: DigitsTextBuffer<String>,
-    mc_delivery_receipt: MCDeliveryReceipt,
+    mc_delivery_receipt: McDeliveryReceipt,
     sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
     intermediate_notification: IntermediateNotification,
     reference: u8,
@@ -237,12 +258,13 @@ impl SubmitSmApp {
         dest_addr_npi: Npi,
         destination_addr: String,
         data_coding: DataCoding,
+        concatenation: Concatenation,
         esm_class: EsmClass,
         last_gsm_features: GsmFeatures,
         protocol_id: String,
         sm_default_msg_id: String,
         priority_flag: String,
-        mc_delivery_receipt: MCDeliveryReceipt,
+        mc_delivery_receipt: McDeliveryReceipt,
         sme_originated_acknowledgement: SmeOriginatedAcknowledgement,
         intermediate_notification: IntermediateNotification,
     ) -> Self {
@@ -266,6 +288,7 @@ impl SubmitSmApp {
             dest_addr_npi,
             destination_addr,
             data_coding,
+            concatenation,
             esm_class,
             last_gsm_features,
             protocol_id: DigitsTextBuffer::new(protocol_id),
@@ -294,12 +317,13 @@ impl SubmitSmApp {
         let dest_addr_npi = Npi::default();
         let short_message = String::from("Hello Rusmppc!");
         let data_coding = DataCoding::default();
+        let concatenation: Concatenation = Concatenation::default();
         let esm_class = EsmClass::default();
         let last_gsm_features = GsmFeatures::default();
         let protocol_id = String::from("0");
         let sm_default_msg_id = String::from("0");
         let priority_flag = String::from("0");
-        let mc_delivery_receipt = MCDeliveryReceipt::default();
+        let mc_delivery_receipt = McDeliveryReceipt::default();
         let sme_originated_acknowledgement = SmeOriginatedAcknowledgement::default();
         let intermediate_notification = IntermediateNotification::default();
 
@@ -314,6 +338,7 @@ impl SubmitSmApp {
             dest_addr_npi,
             destination_addr,
             data_coding,
+            concatenation,
             esm_class,
             last_gsm_features,
             protocol_id,
@@ -337,6 +362,7 @@ impl SubmitSmApp {
             serde_app.dest_addr_npi,
             serde_app.destination_addr,
             serde_app.data_coding,
+            serde_app.concatenation,
             serde_app.esm_class,
             serde_app.last_gsm_features,
             serde_app.protocol_id,
@@ -359,6 +385,7 @@ impl SubmitSmApp {
             dest_addr_npi: self.dest_addr_npi,
             destination_addr: self.destination_addr.clone(),
             data_coding: self.data_coding,
+            concatenation: self.concatenation,
             esm_class: self.esm_class,
             last_gsm_features: self.last_gsm_features,
             protocol_id: self.protocol_id.inner().clone(),
@@ -377,6 +404,7 @@ impl SubmitSmApp {
     pub fn encoder(&self) -> Encoder {
         match self.data_coding {
             DataCoding::Gsm7BitUnpacked => Encoder::Gsm7BitUnpacked(Gsm7BitUnpacked::default()),
+            DataCoding::Gsm7BitPacked => Encoder::Gsm7BitPacked(Gsm7BitPacked::default()),
             DataCoding::Latin1 => Encoder::Latin1(Latin1::default()),
             DataCoding::Ucs2 => Encoder::Ucs2(Ucs2::default()),
         }
@@ -431,6 +459,7 @@ impl SubmitSmApp {
         self.update_short_message();
     }
 
+    /// Builds the [`SubmitSm`] with the `SMPP` values without setting the [`SubmitSm::short_message`] or [`SubmitSm::data_coding`].
     fn build_submit_sm(&self) -> AppResult<SubmitSm> {
         let submit_sm = SubmitSm::builder()
             .service_type(ServiceType::new(self.fields.service_type.clone()?))
@@ -456,15 +485,74 @@ impl SubmitSmApp {
         Ok(submit_sm)
     }
 
-    fn build_submit_sms(&self) -> AppResult<Vec<SubmitSm>> {
+    fn build_submit_sms(&self) -> AppResult<SubmitSms> {
+        match self.concatenation {
+            Concatenation::Udh => self.build_submit_sms_udh(),
+            Concatenation::Sar => self.build_submit_sms_sar(),
+            Concatenation::MessagePayload => self.build_submit_sms_message_payload(),
+        }
+    }
+
+    fn build_submit_sms_udh(&self) -> AppResult<SubmitSms> {
         let submit_sm = self.build_submit_sm()?;
 
-        submit_sm
+        let sms = submit_sm
             .multipart(&self.short_message)
             .reference_u8(self.reference)
             .encoder(self.encoder())
             .build()
-            .map_err(|_| AppUiError::MultiPart(MultiPartError::Todo))
+            .map_err(|_| AppUiError::MultiPart(MultiPartError::Todo))?;
+
+        let bytes: usize = sms.iter().map(|sms| sms.short_message().len()).sum();
+
+        Ok(SubmitSms {
+            sms,
+            bytes,
+            max_bytes: Some(SubmitSm::default_max_short_message_size()),
+        })
+    }
+
+    fn build_submit_sms_sar(&self) -> AppResult<SubmitSms> {
+        let submit_sm = self.build_submit_sm()?;
+
+        let sms = submit_sm
+            .sar_multipart(&self.short_message)
+            // XXX: lossy conversion from u8 to u16
+            .reference(self.reference as u16)
+            .encoder(self.encoder())
+            .build()
+            .map_err(|_| AppUiError::MultiPart(MultiPartError::Todo))?;
+
+        let bytes: usize = sms.iter().map(|sms| sms.short_message().len()).sum();
+
+        Ok(SubmitSms {
+            sms,
+            bytes,
+            max_bytes: Some(SubmitSm::default_max_short_message_size()),
+        })
+    }
+
+    fn build_submit_sms_message_payload(&self) -> AppResult<SubmitSms> {
+        let mut submit_sm = self.build_submit_sm()?;
+
+        let (encoded, data_coding) = self
+            .encoder()
+            .encode(&self.short_message)
+            .map_err(|_| AppUiError::Encode(EncodeError::Todo))?;
+
+        let bytes = encoded.len();
+
+        let message_payload = MessagePayload::new(AnyOctetString::from_vec(encoded));
+        let tlv = MessageSubmissionRequestTlvValue::MessagePayload(message_payload);
+
+        submit_sm.data_coding = data_coding;
+        submit_sm.push_tlv(tlv);
+
+        Ok(SubmitSms {
+            sms: vec![submit_sm],
+            bytes,
+            max_bytes: None,
+        })
     }
 
     fn increment_reference(&mut self) {
@@ -472,16 +560,16 @@ impl SubmitSmApp {
     }
 
     fn counters_message(&self) -> Option<String> {
-        let (sms_count, byte_count) = self.fields.submit_sms.as_ref().ok().map(|sms| {
-            let byte_count: usize = sms.iter().map(|sms| sms.short_message().len()).sum();
-
-            (sms.len(), byte_count)
-        })?;
+        let sms_count = self.fields.submit_sms.as_ref().ok()?.sms.len();
+        let bytes = self.fields.submit_sms.as_ref().ok()?.bytes;
+        let max_bytes = self.fields.submit_sms.as_ref().ok()?.max_bytes;
         let char_count = self.short_message.chars().count();
 
-        Some(format!(
-            "{sms_count} SMS {char_count} Characters {byte_count}/140 Bytes"
-        ))
+        let bytes = max_bytes
+            .map(|max_bytes| format!("{bytes}/{max_bytes} Bytes"))
+            .unwrap_or(format!("{bytes} Bytes"));
+
+        Some(format!("{sms_count} SMS {char_count} Characters {bytes}"))
     }
 
     pub fn set_bound(&mut self, bound: bool) {
@@ -491,7 +579,7 @@ impl SubmitSmApp {
     fn on_submit_button_clicked(&mut self) {
         // We build the SubmitSms every time the button is clicked to prevent building them every time a field is updated.
         if let Ok(sms) = self.build_submit_sms() {
-            self.actions.submit_sms(sms);
+            self.actions.submit_sms(sms.sms);
             self.increment_reference();
         }
     }
@@ -517,10 +605,12 @@ impl SubmitSmApp {
     }
 
     fn udhi_indicator_must_be_set(&self) -> bool {
-        self.fields
-            .submit_sms
-            .as_ref()
-            .is_ok_and(|sms| sms.len() > 1)
+        self.concatenation.is_udh()
+            && self
+                .fields
+                .submit_sms
+                .as_ref()
+                .is_ok_and(|sms| sms.sms.len() > 1)
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui) -> egui::Response {
@@ -723,7 +813,7 @@ impl SubmitSmApp {
                     ui.add(ComboBox::new(
                         "submit_sm_mc_delivery_receipt",
                         &mut self.mc_delivery_receipt,
-                        MCDeliveryReceipt::VARIANTS,
+                        McDeliveryReceipt::VARIANTS,
                     ));
 
                     ui.end_row();
@@ -758,19 +848,34 @@ impl SubmitSmApp {
 
             ui.vertical(|ui| {
                 egui::Grid::new("submit_sm_data_coding_grid")
-                    .num_columns(2)
+                    .num_columns(4)
                     .spacing([12.0, 10.0])
                     .striped(false)
                     .show(ui, |ui| {
                         ui.label("Data Coding");
                         // TODO: make our ComboBox widget take a function for the .changed() callback
                         egui::ComboBox::from_id_salt("submit_sm_data_coding")
-                            .width(100.0)
                             .selected_text(<&'static str>::from(self.data_coding))
                             .show_ui(ui, |ui| {
                                 for item in DataCoding::VARIANTS {
                                     ui.selectable_value(
                                         &mut self.data_coding,
+                                        *item,
+                                        <&'static str>::from(*item),
+                                    )
+                                    .changed()
+                                    .then(|| self.update_short_message());
+                                }
+                            });
+
+                        ui.label("Concatenation");
+
+                        egui::ComboBox::from_id_salt("submit_sm_concatenation")
+                            .selected_text(<&'static str>::from(self.concatenation))
+                            .show_ui(ui, |ui| {
+                                for item in Concatenation::VARIANTS {
+                                    ui.selectable_value(
+                                        &mut self.concatenation,
                                         *item,
                                         <&'static str>::from(*item),
                                     )

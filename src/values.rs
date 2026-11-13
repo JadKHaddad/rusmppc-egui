@@ -1,3 +1,4 @@
+mod concatenation;
 mod data_coding;
 mod esm_class;
 mod event;
@@ -8,6 +9,7 @@ mod priority_flag;
 mod registered_delivery;
 mod ton;
 
+pub use concatenation::Concatenation;
 pub use data_coding::DataCoding;
 pub use esm_class::{Ansi41Specific, EsmClass, GsmFeatures, MessageType, MessagingMode};
 pub use event::Event;
@@ -19,6 +21,6 @@ pub use priority_flag::{
     Is95PriorityFlag,
 };
 pub use registered_delivery::{
-    IntermediateNotification, MCDeliveryReceipt, RegisteredDelivery, SmeOriginatedAcknowledgement,
+    IntermediateNotification, McDeliveryReceipt, RegisteredDelivery, SmeOriginatedAcknowledgement,
 };
 pub use ton::Ton;

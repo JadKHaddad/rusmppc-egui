@@ -78,7 +78,7 @@ impl From<MessageType> for RusmppMessageType {
         match value {
             MessageType::Default => RusmppMessageType::Default,
             MessageType::MCDeliveryReceipt => {
-                RusmppMessageType::ShortMessageContainsMCDeliveryReceipt
+                RusmppMessageType::ShortMessageContainsMcDeliveryReceipt
             }
             MessageType::IntermediateDeliveryNotification => {
                 RusmppMessageType::ShortMessageContainsIntermediateDeliveryNotification
